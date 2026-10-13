@@ -1,0 +1,2285 @@
+<!doctype html>
+<html lang="es">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<meta name="description" content="Salidas fotográficas con gastos compartidos.">
+<title>Salidas Compartidas</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Archivo:wdth,wght@62..125,400..800&display=swap">
+<style>
+/* Layout: una columna tipo "tablón de salidas"; cada viaje es una ficha técnica con plazas, precio por persona y chats. */
+:root {
+  --bg: #f3f4f7;
+  --surface: #ffffff;
+  --surface-2: #f6f7fa;
+  --ink: #111726;
+  --muted: #5e6778;
+  --line: #e2e5ec;
+  --blue: #3554c9;      /* hora azul */
+  --blue-soft: #e9edfb;
+  --gold: #d97a16;      /* hora dorada */
+  --gold-soft: #fdf0e1;
+  --ok: #1f8a57;
+  --warn: #c2461d;
+  --shadow: 0 1px 2px rgba(17, 23, 38, .04), 0 12px 28px -16px rgba(17, 23, 38, .22);
+  --shadow-lg: 0 2px 4px rgba(17, 23, 38, .04), 0 24px 48px -24px rgba(17, 23, 38, .35);
+  --glass: rgba(243, 244, 247, .78);
+  --f-display: "Bricolage Grotesque", "Avenir Next", system-ui, sans-serif;
+  --f-body: "Figtree", system-ui, -apple-system, "Segoe UI", sans-serif;
+  --f-mono: "IBM Plex Mono", ui-monospace, Menlo, monospace;
+  --r: 16px;
+}
+* { box-sizing: border-box; }
+body { background: var(--bg); color: var(--ink); font-family: var(--f-body); font-size: 16px; line-height: 1.5; }
+.wrap { max-width: 760px; margin: 0 auto; padding-inline: 16px; padding-block: 28px 64px; display: flex; flex-direction: column; gap: 24px; }
+
+header.top { display: flex; flex-direction: column; gap: 10px; }
+.eyebrow { font-family: var(--f-mono); font-size: 12px; letter-spacing: .08em; text-transform: uppercase; color: var(--gold); }
+h1 { font-family: var(--f-display); font-weight: 700; font-size: clamp(30px, 6vw, 44px); line-height: 1.05; margin: 0; text-wrap: balance; }
+h1 .light { color: var(--blue); }
+.lede { color: var(--muted); margin: 0; max-width: 60ch; }
+.toolbar { display: flex; flex-wrap: wrap; gap: 10px; align-items: center; justify-content: space-between; }
+.notice { font-size: 14px; color: var(--muted); border: 1px dashed var(--line); border-radius: var(--r); padding: 10px 12px; }
+
+button { font: inherit; font-weight: 700; border-radius: 999px; border: 1px solid transparent; padding: 10px 18px; cursor: pointer; }
+.btn-primary { background: var(--gold); color: #1b1307; }
+.btn-primary:hover { filter: brightness(1.06); }
+.btn-primary[aria-pressed="true"] { box-shadow: 0 0 0 3px var(--gold-soft), inset 0 0 0 2px #1b130733; }
+.btn-ghost { background: transparent; border-color: var(--line); color: var(--ink); }
+.btn-ghost:hover { border-color: var(--muted); }
+.btn-blue { background: var(--blue-soft); color: var(--blue); border-color: transparent; }
+.btn-danger { background: transparent; border-color: var(--warn); color: var(--warn); }
+.btn-sm { font-size: 14px; padding: 7px 14px; }
+button:disabled { opacity: .5; cursor: not-allowed; }
+button:focus-visible, input:focus-visible, select:focus-visible, textarea:focus-visible { outline: 2px solid var(--gold); outline-offset: 2px; }
+
+/* Filtros */
+.filters { display: flex; flex-direction: column; gap: 12px; }
+.frow { display: flex; flex-wrap: wrap; gap: 6px; align-items: center; }
+.flabel { font-family: var(--f-mono); font-size: 12px; letter-spacing: .06em; text-transform: uppercase; color: var(--muted); width: 100%; }
+.seg-btn { font-size: 14px; padding: 7px 14px; background: transparent; border-color: var(--line); color: var(--muted); }
+.seg-btn[aria-pressed="true"] { background: var(--blue); border-color: var(--blue); color: var(--surface); }
+.seg-btn .n { font-family: var(--f-mono); font-weight: 400; opacity: .75; margin-left: 4px; }
+.range { display: grid; grid-template-columns: repeat(2, minmax(0, 180px)); gap: 10px; }
+.from-row { display: flex; flex-wrap: wrap; gap: 10px; align-items: center; }
+.from-row select { width: auto; min-width: 0; max-width: 100%; }
+.count { font-family: var(--f-mono); font-size: 13px; color: var(--muted); }
+.count-row { display: flex; flex-wrap: wrap; gap: 8px 12px; align-items: center; }
+label.inline { flex-direction: row; align-items: center; gap: 8px; font-weight: 400; }
+label.inline select, label.inline input:not([type=checkbox]) { width: auto; min-width: 0; }
+.tipos { display: flex; flex-wrap: wrap; gap: 6px; }
+.tipos label { flex-direction: row; align-items: center; gap: 6px; font-weight: 400; border: 1px solid var(--line); border-radius: 999px; padding: 5px 12px; cursor: pointer; }
+.tipos label:has(input:checked) { border-color: var(--blue); background: var(--blue-soft); color: var(--blue); font-weight: 700; }
+.tipos input { width: 16px; height: 16px; }
+.chip.tipo { background: transparent; border: 1px solid var(--line); color: var(--muted); }
+.chip.new { background: var(--ok); color: var(--surface); }
+.chip.ok { background: var(--ok); color: var(--surface); }
+.chip.warn { background: transparent; border: 1px solid var(--warn); color: var(--warn); }
+.status { display: flex; flex-wrap: wrap; gap: 6px 10px; align-items: center; font-size: 14px; color: var(--muted); }
+.status b { color: var(--ink); }
+.seat.freed { border-style: dashed; border-color: var(--gold); }
+.hint-block { font-size: 13px; color: var(--muted); margin: 0; max-width: 65ch; }
+.hint-block b { color: var(--ink); }
+.ok-txt { color: var(--ok); font-weight: 700; }
+.warn-txt { color: var(--warn); font-weight: 700; }
+.cost-table td.n .src { white-space: normal; text-align: right; }
+.cost-table .src a { color: var(--blue); }
+.comp-form { margin-top: 6px; }
+.comp-form input { flex: 1 1 140px; font-size: 14px; padding: 6px 8px; }
+.pay-state { display: flex; align-items: center; gap: 8px; flex-wrap: wrap; justify-content: flex-end; text-align: right; }
+
+/* Preguntas */
+details.qa summary { cursor: pointer; font-size: 14px; color: var(--blue); font-weight: 700; }
+.qa-list { list-style: none; margin: 8px 0 0; padding: 0; display: flex; flex-direction: column; gap: 10px; }
+.qa-list li { border-left: 3px solid var(--line); padding-left: 10px; font-size: 15px; overflow-wrap: anywhere; }
+.qa-list .q b { font-weight: 700; }
+.qa-list .meta2 { font-size: 12px; color: var(--muted); display: block; }
+.qa-list .a { margin-top: 4px; color: var(--ink); background: var(--blue-soft); border-radius: 8px; padding: 6px 10px; }
+.qa-list .waiting { font-size: 13px; color: var(--muted); font-style: italic; }
+.qa-form { display: flex; flex-wrap: wrap; gap: 8px; margin-top: 10px; }
+.qa-form input { flex: 1 1 200px; min-width: 0; }
+
+/* Fichas */
+.list { display: flex; flex-direction: column; gap: 16px; }
+.trip { background: var(--surface); border: 1px solid var(--line); border-radius: var(--r); padding: 18px; display: flex; flex-direction: column; gap: 14px; min-width: 0; }
+.trip.example { border-style: dashed; }
+.trip.past { opacity: .6; }
+.trip-head { display: flex; gap: 12px; justify-content: space-between; align-items: flex-start; flex-wrap: wrap; }
+.trip-head > div { min-width: 0; }
+.chips { display: flex; flex-wrap: wrap; gap: 6px; }
+.trip h2 { font-family: var(--f-display); font-weight: 700; font-size: 22px; line-height: 1.15; margin: 0; text-wrap: balance; }
+.meta { font-family: var(--f-mono); font-size: 13px; color: var(--muted); display: flex; flex-wrap: wrap; gap: 4px 14px; margin-top: 4px; }
+.chip { font-family: var(--f-mono); font-size: 12px; letter-spacing: .04em; text-transform: uppercase; padding: 3px 10px; border-radius: 999px; background: var(--gold-soft); color: var(--gold); white-space: nowrap; }
+.chip.blue { background: var(--blue-soft); color: var(--blue); }
+.mode { font-size: 15px; display: flex; gap: 8px; align-items: baseline; flex-wrap: wrap; }
+.mode b { color: var(--blue); }
+.desc { margin: 0; max-width: 65ch; }
+
+.figures { display: grid; grid-template-columns: repeat(3, minmax(0, 1fr)); gap: 10px; }
+.fig { border-top: 2px solid var(--line); padding-top: 8px; min-width: 0; }
+.fig.now { border-color: var(--gold); }
+.fig .k { font-size: 12px; color: var(--muted); text-transform: uppercase; letter-spacing: .06em; }
+.fig .v { font-family: var(--f-mono); font-variant-numeric: tabular-nums; font-size: 22px; font-weight: 500; }
+.fig.now .v { color: var(--gold); }
+.plus { font-size: 14px; color: var(--muted); margin-top: -4px; }
+.plus b { color: var(--ink); }
+@media (max-width: 460px) { .figures { grid-template-columns: 1fr 1fr; } .fig.total { grid-column: 1 / -1; } }
+
+.seats { display: flex; flex-direction: column; gap: 6px; }
+.seat-row { display: flex; flex-wrap: wrap; gap: 6px; }
+.seat { width: 26px; height: 26px; border-radius: 50%; border: 2px solid var(--line); display: grid; place-items: center; font-size: 11px; font-weight: 700; }
+.seat.org { background: var(--blue); border-color: var(--blue); color: var(--surface); }
+.seat.taken { background: var(--gold); border-color: var(--gold); color: #1b1307; }
+.seat-label, .people { font-size: 14px; color: var(--muted); }
+
+.groups { font-size: 14px; background: var(--blue-soft); color: var(--ink); border-radius: 8px; padding: 10px 12px; display: flex; flex-direction: column; gap: 2px; }
+.groups .gk { font-family: var(--f-mono); font-size: 12px; letter-spacing: .06em; text-transform: uppercase; color: var(--blue); }
+
+details.costs summary { cursor: pointer; font-size: 14px; color: var(--blue); font-weight: 700; }
+.cost-table { width: 100%; border-collapse: collapse; margin-top: 8px; font-size: 14px; }
+.cost-table th { text-align: left; font-family: var(--f-mono); font-size: 12px; font-weight: 500; letter-spacing: .06em; text-transform: uppercase; color: var(--muted); padding: 10px 0 2px; }
+.cost-table td { padding: 6px 0; border-bottom: 1px solid var(--line); }
+.cost-table td.n { text-align: right; font-family: var(--f-mono); font-variant-numeric: tabular-nums; white-space: nowrap; padding-left: 12px; }
+.cost-table td.note { color: var(--muted); font-style: italic; }
+.table-scroll { overflow-x: auto; }
+.cost-pp { min-width: 420px; }
+.cost-pp tr.head th { font-family: var(--f-body); text-transform: none; letter-spacing: 0; font-size: 13px; font-weight: 700; color: var(--ink); vertical-align: bottom; border-bottom: 2px solid var(--line); }
+.cost-pp th.n { text-align: right; padding-left: 12px; }
+.cost-pp th .src { display: block; font-weight: 400; color: var(--muted); font-family: var(--f-mono); font-size: 11px; }
+.cost-pp td.pp { color: var(--gold); font-weight: 700; }
+.gp > summary { font-size: 15px; }
+.gp[open] { display: flex; flex-direction: column; gap: 10px; }
+.gp .banner { font-size: 14px; color: var(--ink); background: var(--blue-soft); border-radius: 8px; padding: 10px 12px; max-width: none; }
+.steps { list-style: none; margin: 4px 0 0; padding: 0; display: flex; gap: 6px; flex-wrap: wrap; }
+.steps li { display: flex; align-items: center; gap: 6px; font-size: 13px; color: var(--muted); padding-right: 10px; }
+.steps li:not(:last-child)::after { content: "→"; margin-left: 4px; color: var(--line); }
+.steps .dot { width: 22px; height: 22px; border-radius: 50%; border: 2px solid var(--line); display: grid; place-items: center; font-size: 11px; font-weight: 700; }
+.steps li.done { color: var(--ok); }
+.steps li.done .dot { background: var(--ok); border-color: var(--ok); color: var(--surface); }
+.steps li.current { color: var(--ink); font-weight: 700; }
+.steps li.current .dot { border-color: var(--gold); background: var(--gold); color: #1b1307; }
+.mine-pay { display: flex; flex-wrap: wrap; align-items: center; gap: 6px 12px; border: 2px solid var(--gold); border-radius: 10px; padding: 10px 14px; font-size: 14px; }
+.mine-pay b { font-family: var(--f-mono); font-size: 22px; color: var(--gold); }
+.mine-pay.ok { border-color: var(--ok); }
+.mine-pay.ok b { color: var(--ok); }
+.tagline { display: block; font-size: 12px; color: var(--muted); margin-top: 2px; }
+.pill { font-size: 12px; font-weight: 700; padding: 3px 10px; border-radius: 999px; background: var(--bg); color: var(--muted); white-space: nowrap; }
+.pill.paid { background: var(--ok); color: var(--surface); }
+.pill.due { background: transparent; border: 1px solid var(--warn); color: var(--warn); }
+.payers { border: 1px solid var(--line); border-radius: 10px; padding: 12px; display: flex; flex-direction: column; gap: 8px; }
+.payers-head { display: flex; flex-wrap: wrap; justify-content: space-between; gap: 4px 12px; font-size: 14px; }
+.payers-head span { font-family: var(--f-mono); font-size: 13px; color: var(--muted); }
+.bar { height: 8px; border-radius: 999px; background: var(--bg); overflow: hidden; }
+.bar span { display: block; height: 100%; background: var(--ok); border-radius: 999px; }
+.paylist { list-style: none; margin: 0; padding: 0; display: flex; flex-direction: column; }
+.paylist li { display: flex; align-items: center; gap: 8px; padding: 8px 0; border-bottom: 1px solid var(--line); flex-wrap: wrap; }
+.paylist li:last-child { border-bottom: 0; }
+.paylist .who { flex: 1 1 120px; font-size: 15px; min-width: 0; }
+.paylist li.is-paid .who { color: var(--muted); }
+.cost-pp tr.sum td { border-top: 2px solid var(--line); border-bottom: 0; font-weight: 700; }
+
+.actions { display: flex; flex-wrap: wrap; gap: 10px; align-items: center; }
+.state { font-size: 14px; font-weight: 700; }
+.state.ok { color: var(--ok); }
+.state.full { color: var(--warn); }
+
+.joinbox { border: 1px solid var(--line); border-radius: 8px; padding: 14px; display: flex; flex-direction: column; gap: 10px; }
+.joinbox h3 { margin: 0; font-size: 15px; }
+.plist { list-style: none; margin: 0; padding: 0; display: flex; flex-direction: column; gap: 4px; }
+.plist li { display: flex; justify-content: space-between; align-items: center; gap: 8px; font-size: 14px; padding: 4px 0; border-bottom: 1px solid var(--line); }
+.plist li:last-child { border-bottom: 0; }
+.plist .tag { font-family: var(--f-mono); font-size: 11px; color: var(--muted); text-transform: uppercase; letter-spacing: .05em; }
+.plist button { font-size: 13px; padding: 4px 10px; }
+.admin { border-top: 1px dashed var(--line); padding-top: 10px; display: flex; flex-direction: column; gap: 8px; }
+.admin .k { font-family: var(--f-mono); font-size: 12px; letter-spacing: .06em; text-transform: uppercase; color: var(--muted); }
+
+/* Chat */
+.chat { border: 1px solid var(--blue); border-radius: 8px; display: flex; flex-direction: column; min-width: 0; }
+.chat-head { display: flex; justify-content: space-between; align-items: center; gap: 8px; padding: 10px 12px; border-bottom: 1px solid var(--line); }
+.chat-head h3 { margin: 0; font-size: 15px; }
+.chat-head p { margin: 0; font-size: 13px; color: var(--muted); }
+.chat-tabs { display: flex; gap: 6px; flex-wrap: wrap; padding: 8px 12px 0; }
+.msgs { max-height: 280px; overflow-y: auto; padding: 10px 12px; display: flex; flex-direction: column; gap: 8px; }
+.msg { max-width: 85%; background: var(--bg); border-radius: 10px; padding: 7px 10px; font-size: 15px; overflow-wrap: anywhere; }
+.msg.mine { align-self: flex-end; background: var(--gold-soft); }
+.msg .who { font-size: 12px; color: var(--muted); display: block; }
+.msg .who b { color: var(--ink); }
+.msgs .none { color: var(--muted); font-size: 14px; }
+.chat-form { display: flex; gap: 8px; padding: 10px 12px; border-top: 1px solid var(--line); }
+.chat-form input { flex: 1; min-width: 0; }
+
+/* Formularios */
+input, select, textarea { font: inherit; color: var(--ink); background: var(--bg); border: 1px solid var(--line); border-radius: 8px; padding: 9px 11px; width: 100%; }
+textarea { resize: vertical; min-height: 70px; }
+label { display: flex; flex-direction: column; gap: 4px; font-size: 14px; font-weight: 700; min-width: 0; }
+label .hint { font-weight: 400; color: var(--muted); font-size: 13px; }
+label.check { flex-direction: row; align-items: flex-start; gap: 8px; font-weight: 400; }
+label.check input { width: 18px; height: 18px; margin-top: 2px; flex: none; }
+.panel { background: var(--surface); border: 1px solid var(--line); border-radius: var(--r); padding: 20px; display: flex; flex-direction: column; gap: 16px; }
+.panel h2 { font-family: var(--f-display); font-size: 24px; margin: 0; }
+.fstack { display: flex; flex-direction: column; gap: 14px; }
+.grid2 { display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 12px; }
+@media (max-width: 520px) { .grid2 { grid-template-columns: 1fr; } }
+fieldset { border: 1px solid var(--line); border-radius: 8px; padding: 12px; margin: 0; display: flex; flex-direction: column; gap: 10px; min-width: 0; }
+legend { font-size: 14px; font-weight: 700; padding: 0 4px; }
+.modes { display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 8px; }
+@media (max-width: 520px) { .modes { grid-template-columns: 1fr; } }
+.modes label { border: 1px solid var(--line); border-radius: 8px; padding: 10px; flex-direction: row; gap: 8px; align-items: flex-start; font-weight: 400; cursor: pointer; }
+.modes label:has(input:checked) { border-color: var(--blue); background: var(--blue-soft); }
+.modes input { width: 18px; height: 18px; margin-top: 2px; flex: none; }
+.modes b { display: block; }
+.cost-rows { display: flex; flex-direction: column; gap: 8px; }
+.cost-line { display: grid; grid-template-columns: minmax(0, 1fr) 110px 36px; gap: 8px; align-items: center; padding-bottom: 8px; border-bottom: 1px solid var(--line); }
+.cost-line:last-child { border-bottom: 0; padding-bottom: 0; }
+.cost-line .url { grid-column: 1 / -1; font-size: 14px; }
+.cost-line .paga { grid-column: 1 / -1; flex-direction: row; align-items: center; gap: 8px; font-weight: 400; font-size: 13px; color: var(--muted); }
+.cost-line .paga select { width: auto; min-width: 0; font-size: 14px; padding: 6px 8px; }
+.cost-line button { padding: 6px; border-radius: 8px; }
+.cost-table a { color: var(--blue); font-weight: 700; text-underline-offset: 2px; overflow-wrap: anywhere; }
+.cost-table .src { display: block; font-family: var(--f-mono); font-size: 12px; color: var(--muted); }
+.cost-table .nolink { display: block; font-size: 12px; color: var(--muted); }
+.verify { font-family: var(--f-mono); font-weight: 400; font-size: 12px; color: var(--muted); margin-left: 6px; }
+.form-total { font-family: var(--f-mono); font-size: 14px; color: var(--muted); }
+.form-total b { color: var(--gold); }
+.err { color: var(--warn); font-size: 14px; margin: 0; }
+
+/* Exigencia y alojamiento */
+.grid3 { display: grid; grid-template-columns: repeat(3, minmax(0, 1fr)); gap: 12px; }
+@media (max-width: 520px) { .grid3 { grid-template-columns: 1fr 1fr; } }
+.nivel-calc { display: flex; flex-wrap: wrap; align-items: center; gap: 8px 12px; font-size: 14px; }
+.lvl { font-family: var(--f-mono); font-size: 12px; font-weight: 500; letter-spacing: .04em; text-transform: uppercase; padding: 3px 10px; border-radius: 999px; white-space: nowrap; border: 1px solid currentColor; }
+.lvl.l0 { color: var(--ok); }
+.lvl.l1 { color: var(--gold); }
+.lvl.l2 { color: var(--warn); }
+.lvl.l3 { background: var(--warn); border-color: var(--warn); color: var(--surface); }
+.lvl.lx { color: var(--muted); }
+.trek-line { font-size: 14px; color: var(--muted); display: flex; flex-wrap: wrap; gap: 4px 10px; align-items: center; }
+.trek-line b { color: var(--ink); font-weight: 700; }
+.material { font-size: 14px; margin: 0; }
+.material b { font-weight: 700; }
+
+/* Planning */
+.plan-ed { display: flex; flex-direction: column; gap: 12px; }
+.plan-day { border: 1px solid var(--line); border-radius: 8px; padding: 10px; display: flex; flex-direction: column; gap: 8px; }
+.plan-day h4 { margin: 0; font-size: 14px; display: flex; gap: 8px; align-items: baseline; }
+.plan-day h4 .n { font-family: var(--f-mono); font-size: 12px; color: var(--gold); text-transform: uppercase; letter-spacing: .06em; }
+.plan-row { display: grid; grid-template-columns: 92px minmax(0, 1fr) 36px; gap: 6px; align-items: center; }
+.plan-row .url { grid-column: 2 / 3; font-size: 13px; padding: 6px 8px; }
+.plan-row button { padding: 6px; border-radius: 8px; }
+.plan-row input[type=time] { padding: 8px 6px; }
+details.plan summary { cursor: pointer; font-size: 15px; color: var(--blue); font-weight: 700; }
+.plan-view { display: flex; flex-direction: column; gap: 12px; margin-top: 10px; }
+.pv-day h4 { margin: 0 0 4px; font-size: 14px; display: flex; gap: 8px; align-items: baseline; }
+.pv-day h4 .n { font-family: var(--f-mono); font-size: 12px; color: var(--gold); text-transform: uppercase; letter-spacing: .06em; }
+.pv-day ol { list-style: none; margin: 0; padding: 0 0 0 10px; border-left: 2px solid var(--gold-soft); display: flex; flex-direction: column; gap: 6px; }
+.pv-day li { display: grid; grid-template-columns: 52px minmax(0, 1fr); gap: 8px; font-size: 15px; overflow-wrap: anywhere; }
+.pv-day .h { font-family: var(--f-mono); font-variant-numeric: tabular-nums; font-size: 13px; color: var(--muted); padding-top: 2px; }
+.pv-day a { color: var(--blue); font-size: 13px; font-weight: 700; }
+.pv-day .empty-day { font-size: 13px; color: var(--muted); font-style: italic; }
+.btn-link { display: inline-flex; align-items: center; font-weight: 700; padding: 10px 18px; border-radius: 999px; border: 1px solid var(--ok); color: var(--ok); text-decoration: none; }
+.btn-link:hover { background: var(--bg); }
+.imp-preview { border: 1px solid var(--blue); background: var(--blue-soft); border-radius: 8px; padding: 12px; font-size: 15px; display: flex; flex-direction: column; gap: 4px; }
+.imp-preview b { font-size: 16px; }
+#send-text, #imp-text { font-family: var(--f-mono); font-size: 13px; }
+.btn-ghost[aria-pressed="true"] { background: var(--blue); border-color: var(--blue); color: var(--surface); }
+.linklike { background: none; border: 0; padding: 0; font: inherit; font-weight: 700; color: var(--blue); text-decoration: underline; text-underline-offset: 2px; border-radius: 2px; }
+.rules ol { margin: 0; padding-left: 20px; display: flex; flex-direction: column; gap: 8px; max-width: 65ch; }
+.rules .eyebrow { margin: 0 0 10px; }
+.rules p { margin: 0 0 10px; max-width: 65ch; }
+.legal-dl { display: grid; grid-template-columns: max-content minmax(0, 1fr); gap: 6px 16px; margin: 0 0 12px; }
+.legal-dl dt { font-weight: 700; }
+.legal-dl dd { margin: 0; overflow-wrap: anywhere; }
+.legal-dl a { color: var(--blue); font-weight: 700; }
+.sel { user-select: all; font-family: var(--f-mono); font-size: 14px; }
+@media (max-width: 460px) { .legal-dl { grid-template-columns: 1fr; } .legal-dl dd { margin-bottom: 6px; } }
+.org { display: flex; gap: 10px; align-items: flex-start; font-size: 14px; }
+.org .av { width: 34px; height: 34px; border-radius: 50%; background: var(--blue); color: var(--surface); display: grid; place-items: center; font-weight: 700; flex: none; }
+.org .who { display: flex; flex-direction: column; min-width: 0; }
+.org .who b { font-size: 15px; }
+.org .trust { display: flex; flex-wrap: wrap; gap: 4px 12px; color: var(--muted); }
+.org a, .people a { color: var(--blue); font-weight: 700; }
+.org .bio { color: var(--ink); overflow-wrap: anywhere; }
+.badge { font-family: var(--f-mono); font-size: 11px; letter-spacing: .04em; text-transform: uppercase; padding: 2px 8px; border-radius: 999px; background: var(--blue-soft); color: var(--blue); }
+.empty { color: var(--muted); padding: 4px 0; margin: 0; }
+.empty strong { color: var(--ink); }
+.foot { font-size: 13px; color: var(--muted); margin: 0; }
+@media (prefers-reduced-motion: no-preference) { .trip { transition: border-color .15s; } }
+
+/* ================= Rediseño «cuarto de revelado» =================
+   Layout: app oscura de una columna. Arriba, una panorámica generada; cada salida lleva una portada con el
+   cielo de la luz que busca y las esquinas del visor. En el móvil, barra de pestañas abajo con «+» central;
+   en el ordenador, barra superior fija con la marca a la izquierda. Una sola familia: Archivo, ensanchada en titulares. */
+:root {
+  --bg: #16181b;
+  --surface: #1e2125;
+  --surface-2: #262a2f;
+  --raised: #2d3238;
+  --ink: #eef0f2;
+  --muted: #9aa1ab;
+  --line: #33383f;
+  --blue: #86a3ee;      /* hora azul */
+  --blue-soft: #222a3d;
+  --gold: #f2a83f;      /* hora dorada */
+  --gold-soft: #3a2b16;
+  --ok: #5ccf8f;
+  --warn: #ff8461;
+  --glass: rgba(22, 24, 27, .82);
+  --shadow: 0 1px 0 rgba(255,255,255,.03) inset, 0 18px 40px -24px rgba(0,0,0,.9);
+  --shadow-lg: 0 30px 60px -30px rgba(0,0,0,.95);
+  --f-display: "Archivo", "Helvetica Neue", Arial, sans-serif;
+  --f-body: "Archivo", "Helvetica Neue", Arial, sans-serif;
+  --f-mono: "Archivo", "Helvetica Neue", Arial, sans-serif;
+  --r: 18px;
+  color-scheme: dark;
+}
+body { background: var(--bg); color: var(--ink); font-family: var(--f-body); font-size: 16px; line-height: 1.5; font-variation-settings: "wdth" 100; -webkit-font-smoothing: antialiased; font-variant-numeric: tabular-nums; }
+.wrap { max-width: 760px; gap: 18px; padding-block: 0 120px; }
+h1, h2, .panel h2, .trip h2 { font-family: var(--f-display); font-variation-settings: "wdth" 118; letter-spacing: -.01em; }
+
+/* ---------- Barra de la app ---------- */
+.toolbar { position: sticky; top: env(safe-area-inset-top, 0px); z-index: 40; margin-inline: -16px; padding: 10px 16px;
+  background: var(--glass); -webkit-backdrop-filter: saturate(140%) blur(16px); backdrop-filter: saturate(140%) blur(16px);
+  border-bottom: 1px solid var(--line); display: flex; align-items: center; justify-content: space-between; gap: 12px; flex-wrap: nowrap; }
+.brand { display: flex; align-items: center; gap: 10px; color: var(--ink); text-decoration: none; font-weight: 700; font-variation-settings: "wdth" 125; font-size: 17px; letter-spacing: .01em; white-space: nowrap; }
+.brand svg { width: 26px; height: 26px; color: var(--gold); flex: none; }
+.toolbar .actions { gap: 6px; flex-wrap: nowrap; }
+.toolbar .actions button { display: inline-flex; align-items: center; gap: 8px; padding: 9px 14px; border-radius: 12px; font-weight: 600; }
+.toolbar .actions svg { width: 18px; height: 18px; flex: none; }
+.toolbar .btn-ghost { background: transparent; border-color: transparent; color: var(--muted); }
+.toolbar .btn-ghost:hover { color: var(--ink); background: var(--surface-2); }
+.toolbar .btn-ghost[aria-pressed="true"] { background: var(--surface-2); color: var(--ink); border-color: var(--line); }
+@media (max-width: 759px) {
+  .toolbar { position: fixed; inset: auto 0 0 0; margin: 0; z-index: 50; padding: 6px 8px calc(8px + env(safe-area-inset-bottom, 0px)); border-bottom: 0; border-top: 1px solid var(--line); }
+  .brand { display: none; }
+  .toolbar .actions { width: 100%; justify-content: space-around; gap: 0; }
+  .toolbar .actions button { flex: 1 1 0; flex-direction: column; gap: 3px; padding: 6px 4px; font-size: 11.5px; font-weight: 600; border-radius: 12px; min-width: 0; }
+  .toolbar .actions button span { white-space: nowrap; }
+  .toolbar .actions svg { width: 22px; height: 22px; }
+  .toolbar #btn-new { order: 2; flex: 0 0 auto; width: 60px; height: 60px; padding: 0; border-radius: 50%; margin-top: -26px; justify-content: center; box-shadow: 0 10px 24px -8px rgba(242,168,63,.6), 0 0 0 5px var(--bg); }
+  .toolbar #btn-new span { position: absolute; width: 1px; height: 1px; overflow: hidden; clip: rect(0 0 0 0); }
+  .toolbar #btn-new svg { width: 28px; height: 28px; }
+  .toolbar #btn-profile { order: 1; } .toolbar #btn-rules { order: 3; } .toolbar #btn-login { order: 1; }
+}
+
+/* ---------- Panorámica de cabecera ---------- */
+header.top { position: relative; margin: 6px 0 0; padding: 0; border-radius: 22px; overflow: hidden; min-height: 300px; display: flex; flex-direction: column; justify-content: flex-end; align-items: stretch; background: #0e1020; box-shadow: var(--shadow-lg); color: #fff; }
+header.top::after { content: none; }
+.hero-cover, .cover-art { position: absolute; inset: 0; }
+.hero-cover svg, .cover-art svg { width: 100%; height: 100%; display: block; }
+.hero-text { position: relative; z-index: 2; padding: 90px 26px 26px; width: 100%; background: linear-gradient(180deg, rgba(8,9,14,0) 0%, rgba(8,9,14,.35) 40%, rgba(8,9,14,.8) 100%); }
+header.top h1 { margin: 0; color: #fff; font-size: clamp(34px, 8vw, 56px); font-weight: 800; line-height: .95; font-variation-settings: "wdth" 125; letter-spacing: -.015em; }
+header.top .lede { color: rgba(255,255,255,.82); margin-top: 10px; font-size: 15.5px; max-width: 52ch; }
+header.top .eyebrow { display: none; }
+
+/* Visor de cámara: cuatro esquinas */
+.vf { position: absolute; inset: 14px; pointer-events: none; z-index: 1;
+  background:
+    linear-gradient(rgba(255,255,255,.85), rgba(255,255,255,.85)) top left / 20px 2px,
+    linear-gradient(rgba(255,255,255,.85), rgba(255,255,255,.85)) top left / 2px 20px,
+    linear-gradient(rgba(255,255,255,.85), rgba(255,255,255,.85)) top right / 20px 2px,
+    linear-gradient(rgba(255,255,255,.85), rgba(255,255,255,.85)) top right / 2px 20px,
+    linear-gradient(rgba(255,255,255,.85), rgba(255,255,255,.85)) bottom left / 20px 2px,
+    linear-gradient(rgba(255,255,255,.85), rgba(255,255,255,.85)) bottom left / 2px 20px,
+    linear-gradient(rgba(255,255,255,.85), rgba(255,255,255,.85)) bottom right / 20px 2px,
+    linear-gradient(rgba(255,255,255,.85), rgba(255,255,255,.85)) bottom right / 2px 20px;
+  background-repeat: no-repeat; opacity: .8; }
+.grain { position: absolute; inset: 0; z-index: 1; pointer-events: none; opacity: .22; mix-blend-mode: overlay;
+  background-image: url("data:image/svg+xml;utf8,<svg xmlns='http://www.w3.org/2000/svg' width='160' height='160'><filter id='n'><feTurbulence type='fractalNoise' baseFrequency='.9' numOctaves='2' stitchTiles='stitch'/><feColorMatrix values='0 0 0 0 1  0 0 0 0 1  0 0 0 0 1  0 0 0 .55 0'/></filter><rect width='100%' height='100%' filter='url(%23n)'/></svg>"); }
+
+/* ---------- Botones ---------- */
+button, .btn-link { border-radius: 12px; transition: background-color .15s ease, border-color .15s ease, box-shadow .15s ease, color .15s ease; }
+.btn-primary { background: linear-gradient(160deg, #ffc15e, #ee8a2c); color: #1d1205; border: 0; font-weight: 700; box-shadow: 0 8px 20px -10px rgba(242,168,63,.8); }
+.btn-primary:hover { filter: brightness(1.06); }
+.btn-ghost { background: var(--surface-2); border-color: var(--line); color: var(--ink); }
+.btn-ghost:hover { background: var(--raised); border-color: #444a52; }
+.btn-ghost[aria-pressed="true"] { background: var(--ink); border-color: var(--ink); color: var(--bg); }
+.btn-blue { background: var(--blue-soft); color: var(--blue); }
+.btn-blue:hover { background: #2a3550; }
+.btn-danger { border-color: var(--warn); color: var(--warn); background: transparent; }
+.btn-link { border-color: var(--ok); color: var(--ok); }
+button:focus-visible, input:focus-visible, select:focus-visible, textarea:focus-visible, summary:focus-visible, a:focus-visible { outline: 2px solid var(--gold); outline-offset: 2px; }
+.notice { border: 1px solid var(--line); background: var(--surface); color: var(--muted); border-radius: 14px; padding: 12px 14px; }
+
+/* ---------- Filtros ---------- */
+.filters { background: transparent; padding: 0; box-shadow: none; gap: 12px; }
+.flabel { font-family: var(--f-body); text-transform: none; letter-spacing: 0; font-weight: 600; font-size: 13px; color: var(--muted); }
+.filters > .frow:first-child { flex-wrap: nowrap; overflow-x: auto; scrollbar-width: none; padding-bottom: 2px; margin-inline: -16px; padding-inline: 16px; }
+.filters > .frow:first-child::-webkit-scrollbar { display: none; }
+.filters > .frow:first-child .flabel { display: none; }
+.seg-btn { flex: none; border-radius: 999px; background: var(--surface); border: 1px solid var(--line); color: var(--ink); font-weight: 600; padding: 8px 15px; }
+.seg-btn:hover { border-color: #4a5058; }
+.seg-btn[aria-pressed="true"] { background: var(--ink); border-color: var(--ink); color: var(--bg); }
+.seg-btn .n { opacity: .6; }
+.more-filters { background: var(--surface); border: 1px solid var(--line); border-radius: 16px; }
+.more-filters > summary { list-style: none; cursor: pointer; position: relative; display: flex; align-items: baseline; gap: 10px; flex-wrap: wrap; padding: 13px 44px 13px 16px; font-weight: 700; font-size: 15px; }
+.more-filters > summary::-webkit-details-marker { display: none; }
+.more-filters > summary::after { content: ""; position: absolute; right: 18px; top: 18px; width: 8px; height: 8px; border-right: 2px solid var(--muted); border-bottom: 2px solid var(--muted); transform: rotate(45deg); transition: transform .15s; }
+.more-filters[open] > summary::after { transform: rotate(225deg); top: 22px; }
+.more-filters > summary .hint { font-weight: 400; color: var(--muted); font-size: 13.5px; }
+.more-body { display: flex; flex-direction: column; gap: 14px; padding: 0 16px 16px; }
+.count-row { border-top: 0; padding-top: 0; }
+.count { font-family: var(--f-body); font-size: 13.5px; }
+.count-row:has(.count:empty):has(#btn-clear[hidden]) { display: none; }
+
+/* ---------- Formularios y paneles ---------- */
+input, select, textarea { background: var(--bg); border: 1px solid var(--line); color: var(--ink); border-radius: 12px; }
+input:focus, select:focus, textarea:focus { border-color: var(--gold); outline: none; }
+input::placeholder, textarea::placeholder { color: #6f7680; }
+fieldset { background: var(--surface-2); border: 0; border-radius: 16px; padding: 16px; }
+legend { float: left; width: 100%; padding: 0 0 6px; background: none; box-shadow: none; font-size: 15px; }
+legend + * { clear: both; }
+.panel { background: var(--surface); border: 1px solid var(--line); border-radius: 22px; box-shadow: var(--shadow-lg); padding: 22px; }
+.panel h2 { font-size: 26px; font-weight: 800; }
+.modes label, .tipos label { background: var(--surface); border-color: var(--line); }
+.modes label:has(input:checked) { border-color: var(--gold); background: var(--gold-soft); }
+.tipos label:has(input:checked) { border-color: var(--gold); background: var(--gold-soft); color: var(--gold); }
+.joinbox { background: var(--surface-2); border: 0; border-radius: 16px; }
+.lede { color: var(--muted); }
+.eyebrow { font-family: var(--f-body); text-transform: none; letter-spacing: 0; font-size: 13px; color: var(--muted); }
+
+/* ---------- Ficha de salida ---------- */
+.list { gap: 22px; }
+.trip { background: var(--surface); border: 1px solid var(--line); border-radius: 22px; box-shadow: var(--shadow); padding: 0 18px 18px; gap: 14px; overflow: hidden; position: relative; }
+.trip::before { content: none; }
+.trip.example { border-style: dashed; }
+.trip.past { opacity: .55; }
+.cover { position: relative; margin: 0 -18px; aspect-ratio: 16 / 9; max-height: 340px; width: auto; overflow: hidden; background: #0e1020; color: #fff; }
+.cover-top { position: absolute; z-index: 2; top: 26px; left: 26px; right: 26px; display: flex; justify-content: space-between; align-items: flex-start; gap: 8px; }
+.cover-top .chips { gap: 6px; }
+.cover .chip, .cover .lvl { background: rgba(10,12,18,.55); -webkit-backdrop-filter: blur(8px); backdrop-filter: blur(8px); color: #fff; border: 1px solid rgba(255,255,255,.18); }
+.cover .chip.new { background: var(--ok); color: #06210f; border-color: transparent; }
+.cover-price { background: rgba(10,12,18,.6); -webkit-backdrop-filter: blur(8px); backdrop-filter: blur(8px); border: 1px solid rgba(255,255,255,.18); border-radius: 14px; padding: 6px 12px; text-align: right; line-height: 1.1; flex: none; }
+.cover-price b { display: block; font-size: 20px; font-weight: 800; font-variation-settings: "wdth" 112; color: #ffd08a; }
+.cover-price span { font-size: 11.5px; color: rgba(255,255,255,.75); }
+.cover-title { position: absolute; z-index: 2; inset: auto 0 0 0; padding: 60px 22px 20px; background: linear-gradient(180deg, rgba(8,9,14,0), rgba(8,9,14,.82)); }
+.cover-title h2 { margin: 0; color: #fff; font-size: clamp(22px, 5vw, 30px); font-weight: 800; line-height: 1.05; text-wrap: balance; }
+.cover-title .where { display: flex; flex-wrap: wrap; gap: 4px 14px; margin-top: 6px; font-size: 14.5px; color: rgba(255,255,255,.85); }
+.tags { display: flex; flex-wrap: wrap; gap: 6px; margin-top: -2px; }
+.chip { font-family: var(--f-body); text-transform: none; letter-spacing: 0; font-weight: 600; font-size: 12.5px; padding: 4px 11px; background: var(--surface-2); color: var(--ink); border: 1px solid var(--line); }
+.chip.tipo { background: var(--surface-2); color: var(--muted); border-color: var(--line); }
+.chip.blue { background: var(--blue-soft); color: var(--blue); border-color: transparent; }
+.chip.ok { background: var(--ok); color: #06210f; border-color: transparent; }
+.chip.warn { background: transparent; color: var(--warn); border-color: var(--warn); }
+.lvl { font-family: var(--f-body); text-transform: none; letter-spacing: 0; font-weight: 700; font-size: 12.5px; padding: 4px 11px; }
+.meta { font-family: var(--f-body); }
+.mode { font-size: 15px; }
+.mode b, .org a, .people a, .pv-day a, .cost-table a { color: var(--blue); }
+.status { background: var(--surface-2); border-radius: 12px; padding: 10px 12px; color: var(--muted); }
+.desc { color: #d5d9de; }
+.trek-line b { color: var(--ink); }
+
+/* Precio y plazas */
+.figures { background: var(--surface-2); border-radius: 16px; padding: 14px 16px; gap: 12px; }
+.fig { border-top: 0; padding-top: 0; }
+.fig .k { text-transform: none; letter-spacing: 0; font-weight: 600; font-size: 12.5px; color: var(--muted); }
+.fig .v { font-family: var(--f-display); font-variation-settings: "wdth" 112; font-weight: 700; font-size: 21px; }
+.fig.now .v { font-size: 30px; color: var(--gold); font-weight: 800; }
+.seat { width: 32px; height: 32px; font-size: 12.5px; border: 2px solid var(--line); line-height: 1; padding: 0; }
+.seat.org { display: grid; place-items: center; gap: 0; align-items: center; background: var(--blue); border-color: var(--blue); color: #0b1430; }
+.seat.taken { background: linear-gradient(160deg, #ffc15e, #ee8a2c); border-color: transparent; color: #1d1205; }
+.seat.freed { border-style: dashed; border-color: var(--gold); }
+.org .av { background: linear-gradient(160deg, var(--blue), #6c5bd6); color: #0b1430; }
+
+/* Secciones desplegables */
+details.costs > summary, details.plan > summary, details.qa > summary { list-style: none; position: relative; display: flex; align-items: center; gap: 8px; flex-wrap: wrap;
+  padding: 13px 44px 13px 14px; border-radius: 14px; background: var(--surface-2); color: var(--ink); font-size: 15px; font-weight: 700; }
+details.costs > summary::-webkit-details-marker, details.plan > summary::-webkit-details-marker, details.qa > summary::-webkit-details-marker { display: none; }
+details.costs > summary::after, details.plan > summary::after, details.qa > summary::after { content: ""; position: absolute; right: 18px; top: 50%; margin-top: -6px; width: 8px; height: 8px; border-right: 2px solid var(--muted); border-bottom: 2px solid var(--muted); transform: rotate(45deg); transition: transform .15s; }
+details[open].costs > summary::after, details[open].plan > summary::after, details[open].qa > summary::after { transform: rotate(225deg); margin-top: -2px; }
+.badge { font-family: var(--f-body); text-transform: none; letter-spacing: 0; font-weight: 700; background: var(--gold-soft); color: var(--gold); }
+.verify { font-family: var(--f-body); }
+.cost-table th { font-family: var(--f-body); text-transform: none; letter-spacing: 0; font-size: 13px; }
+.cost-table .src, .tagline, .paga { font-family: var(--f-body); }
+.cost-pp td.pp { color: var(--gold); }
+.gp .banner { background: var(--blue-soft); color: var(--ink); }
+.steps li.current .dot { background: var(--gold); border-color: var(--gold); color: #1d1205; }
+.mine-pay { border-color: var(--gold); background: var(--gold-soft); }
+.mine-pay b { font-family: var(--f-display); font-variation-settings: "wdth" 112; font-weight: 800; }
+.payers, .admin, .chat, .groups { background: var(--surface-2); border: 0; border-radius: 16px; }
+.admin { padding: 14px; }
+.admin .k, .groups .gk, .plist .tag, .pv-day h4 .n, .plan-day h4 .n { font-family: var(--f-body); text-transform: none; letter-spacing: 0; font-weight: 700; }
+.msg { background: var(--raised); }
+.msg.mine { background: var(--gold-soft); }
+.pill.paid { background: var(--ok); color: #06210f; }
+.bar { background: var(--bg); }
+.bar span { background: var(--ok); }
+.pv-day ol { border-left-color: var(--gold-soft); }
+.pv-day .h { font-family: var(--f-body); }
+.plan-day { border-color: var(--line); background: var(--surface); }
+.foot { color: var(--muted); }
+.empty { color: var(--muted); }
+.empty strong { color: var(--ink); }
+.hint-block b, .plus b { color: var(--ink); }
+.sel { font-family: var(--f-body); }
+#send-text, #imp-text { font-family: ui-monospace, Menlo, monospace; }
+@media (max-width: 480px) {
+  header.top { min-height: 240px; border-radius: 18px; margin-top: 14px; }
+  .hero-text { padding: 56px 18px 18px; }
+  .trip { padding: 0 14px 16px; border-radius: 18px; }
+  .cover { margin: 0 -14px; aspect-ratio: 4 / 3; }
+  .cover-top { top: 20px; left: 20px; right: 20px; }
+  .cover-title { padding: 50px 18px 18px; }
+  .fig.now .v { font-size: 26px; }
+}
+@media (prefers-reduced-motion: reduce) { button, .btn-link, details > summary::after { transition: none; } }
+[hidden] { display: none !important; }
+</style>
+</head>
+<body>
+
+
+<div class="wrap" id="top">
+  <div class="toolbar">
+    <a class="brand" href="#top" aria-label="Salidas Compartidas, inicio"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><circle cx="12" cy="12" r="10"/><line x1="14.31" y1="8" x2="20.05" y2="17.94"/><line x1="9.69" y1="8" x2="21.17" y2="8"/><line x1="7.38" y1="12" x2="13.12" y2="2.06"/><line x1="9.69" y1="16" x2="3.95" y2="6.06"/><line x1="14.31" y1="16" x2="2.83" y2="16"/><line x1="16.62" y1="12" x2="10.88" y2="21.94"/></svg>Salidas</a>
+    <div class="actions">
+      <button class="btn-primary" id="btn-new" type="button"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M12 5v14M5 12h14"/></svg><span>Proponer salida</span></button>
+      <button class="btn-ghost" id="btn-profile" hidden type="button" aria-pressed="false" aria-controls="profile-panel"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><circle cx="12" cy="8" r="4"/><path d="M4 21c1.6-4 4.6-6 8-6s6.4 2 8 6"/></svg><span>Mi perfil</span></button>
+      <button class="btn-ghost" id="btn-rules" type="button" aria-pressed="false" aria-controls="rules-panel"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M7 3h7l5 5v13H7z"/><path d="M14 3v5h5M10 13h6M10 17h6"/></svg><span>Condiciones</span></button>
+      <button class="btn-ghost" id="btn-login" type="button" aria-pressed="false" aria-controls="login-panel"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M15 3h4a2 2 0 0 1 2 2v14a2 2 0 0 1-2 2h-4"/><path d="M10 17l5-5-5-5M15 12H3"/></svg><span>Entrar</span></button>
+    </div>
+  </div>
+  <header class="top">
+    <div class="hero-cover" id="hero-cover" aria-hidden="true"></div>
+    <span class="grain" aria-hidden="true"></span>
+    <span class="vf" aria-hidden="true"></span>
+    <div class="hero-text">
+      <h1>Salidas Compartidas</h1>
+      <p class="lede">Propón una salida fotográfica con su presupuesto y sus plazas. Los gastos comunes se dividen entre quienes van.</p>
+    </div>
+  </header>
+
+  <span class="notice" id="mode-note" hidden></span>
+
+  <section class="panel" id="profile-panel" hidden>
+    <h2>Mi perfil</h2>
+    <p class="lede" style="font-size:15px"><span id="p-email"></span>Lo que pongas aquí lo verán quienes miren tus salidas o a quién va. Sirve para que los demás sepan con quién viajan.</p>
+    <form id="profile-form" novalidate>
+      <div class="fstack">
+        <div class="grid2">
+          <label>Nombre o alias<input id="p-alias" maxlength="40"></label>
+          <label>Sueles salir desde<select id="p-origen"></select></label>
+        </div>
+        <div class="grid2">
+          <label>Instagram <span class="hint">opcional</span><input id="p-ig" maxlength="60" placeholder="@tuusuario" autocomplete="off"></label>
+          <label>Web <span class="hint">opcional</span><input id="p-web" maxlength="120" placeholder="tuweb.com" inputmode="url" autocomplete="off"></label>
+        </div>
+        <label>Sobre ti <span class="hint">qué te gusta fotografiar, con qué viajas…</span><textarea id="p-bio" maxlength="280"></textarea></label>
+        <label class="check"><input type="checkbox" id="p-rules"> Soy mayor de 18 años y acepto las <button type="button" class="linklike" data-open-rules="cond">condiciones de uso</button> y la <button type="button" class="linklike" data-open-rules="priv">política de privacidad</button></label>
+        <p class="err" id="p-err" hidden></p>
+        <div class="actions">
+          <button class="btn-primary" type="submit" id="p-save">Guardar perfil</button>
+          <button class="btn-ghost" type="button" id="p-cancel">Cerrar</button>
+          <button class="btn-ghost btn-sm" type="button" id="p-logout">Cerrar sesión</button>
+          <button class="btn-danger btn-sm" type="button" id="p-delete" hidden>Borrar mi perfil y mis salidas</button>
+        </div>
+      </div>
+    </form>
+  </section>
+
+  <section class="panel" id="plan-panel" hidden>
+    <h2>Editar planning</h2>
+    <p class="lede" style="font-size:15px" id="plan-panel-title"></p>
+    <div id="pe-plan" class="plan-ed"></div>
+    <p class="err" id="pe-err" hidden></p>
+    <div class="actions">
+      <button class="btn-primary" id="pe-save" type="button">Guardar planning</button>
+      <button class="btn-ghost" id="pe-close" type="button">Cancelar</button>
+    </div>
+  </section>
+
+
+  <section class="panel" id="login-panel" hidden>
+    <h2>Entrar</h2>
+    <p class="lede" style="font-size:15px" id="login-why">Escribe tu email y te mandamos un enlace para entrar. No hace falta contraseña: la primera vez se crea tu cuenta.</p>
+    <form id="login-form" novalidate>
+      <div class="fstack">
+        <label>Tu email<input id="l-email" type="email" autocomplete="email" inputmode="email" maxlength="120" placeholder="nombre@correo.com"></label>
+        <p class="err" id="l-err" hidden></p>
+        <p class="hint-block" id="l-ok" hidden></p>
+        <div class="actions">
+          <button class="btn-primary" type="submit" id="l-send">Enviarme el enlace</button>
+          <button class="btn-ghost" type="button" id="l-cancel">Cerrar</button>
+        </div>
+        <p class="hint-block">Tu email solo sirve para entrar. No se enseña a nadie.</p>
+      </div>
+    </form>
+  </section>
+
+  <section class="panel" id="rules-panel" hidden>
+    <h2>Condiciones y privacidad</h2>
+    <p class="eyebrow" style="margin:0">Versión 5 · octubre 2026 · borrador pendiente de revisión profesional</p>
+    <div class="frow" role="tablist" aria-label="Textos legales">
+      <button type="button" class="seg-btn" role="tab" data-legal="cond" aria-pressed="true">Condiciones de uso</button>
+      <button type="button" class="seg-btn" role="tab" data-legal="aviso" aria-pressed="false">Aviso legal</button>
+      <button type="button" class="seg-btn" role="tab" data-legal="priv" aria-pressed="false">Privacidad</button>
+    </div>
+
+    <div class="rules" id="legal-cond" role="tabpanel">
+      <ol>
+        <li><b>Qué es.</b> Salidas Compartidas es un tablón gratuito, gestionado por Sergio Arteaga Fotografía, para que aficionados a la fotografía organicen salidas y repartan los gastos comunes. Está en fase de pruebas.</li>
+        <li><b>No es una agencia de viajes.</b> La página no organiza, vende ni intermedia viajes. Cada salida la propone un particular, bajo su responsabilidad. La página no cobra comisiones ni interviene en los pagos.</li>
+        <li><b>Reparto de gastos sin ánimo de lucro.</b> El precio por persona es el total de gastos comunes reales dividido entre quienes van. No se permiten salidas con beneficio para quien organiza ni con fines comerciales.</li>
+        <li><b>Información veraz.</b> Quien organiza publica fechas, plan y gastos reales, con enlace a la reserva o a la oferta siempre que pueda, y los actualiza si cambian.</li>
+        <li><b>Pagos entre participantes.</b> Se hacen directamente entre las personas que van. La página no cobra, no guarda dinero ni publica datos bancarios. Nadie tiene que pagar nada hasta que la salida está confirmada. Al organizador solo se le paga un gasto cuya reserva esté comprobada en la ficha. Cada gasto indica a quién se paga: al organizador, a quien conduce durante el viaje o directamente al proveedor. Comprueba la reserva antes de pagar.</li>
+        <li><b>Plazas mínimas y fecha límite.</b> Cada salida indica cuántas personas hacen falta para que salga y hasta cuándo te puedes apuntar. Si en la fecha límite no se llega al mínimo, la salida no sale. Si se llega, queda confirmada y ya solo se pueden ocupar las plazas que alguien deje libres.</li>
+        <li><b>Lista de espera.</b> Si no puedes apuntarte directamente, puedes entrar en la lista de espera. Si se libera una plaza, entra automáticamente el primero de la lista, con las mismas condiciones que el resto: si la salida ya está confirmada, paga su parte y, si después se borra, se le aplica la misma regla de bajas. Puedes salir de la lista cuando quieras.</li>
+        <li><b>Bajas y cancelaciones.</b> Hasta la fecha límite puedes borrarte sin coste. Si te borras después, tu parte de los gastos te corresponde, salvo que alguien ocupe tu plaza o la salida diga otra cosa. Si la salida se cancela, quien organiza devuelve lo que recupere y el resto se reparte a partes iguales entre quienes iban.</li>
+        <li><b>Cada participante responde de sí mismo.</b> De su seguridad y su equipo, de llevar seguro de viaje y de accidentes, y de cumplir las normas de parques naturales, drones, propiedad privada y tráfico. Quien conduce responde de su vehículo y de su seguro.</li>
+        <li><b>Respeto.</b> Trato correcto en las salidas, preguntas y chats. No se permite contenido ofensivo, publicidad ni publicar datos de otras personas sin su permiso. El administrador puede retirar salidas, mensajes o participantes que no cumplan estas condiciones.</li>
+        <li><b>Responsabilidad de la página.</b> El tablón se ofrece tal cual. Sergio Arteaga Fotografía no verifica la identidad de los usuarios, no garantiza que las salidas se celebren y no responde de los acuerdos entre participantes, en la medida en que la ley lo permita.</li>
+        <li><b>Edad.</b> Para usar la página hay que ser mayor de 18 años.</li>
+        <li><b>Cambios.</b> Estas condiciones pueden cambiar. Cuando cambien, se pedirá aceptarlas de nuevo.</li>
+        <li><b>Ley aplicable.</b> Legislación española.</li>
+      </ol>
+    </div>
+
+    <div class="rules" id="legal-aviso" role="tabpanel" hidden>
+      <dl class="legal-dl">
+        <dt>Titular</dt><dd>Sergio Arteaga Fotografía (Sergio Arteaga)</dd>
+        <dt>Contacto</dt><dd><span class="sel">sergioarteagafotografia@gmail.com</span> <button type="button" class="linklike" data-copy="sergioarteagafotografia@gmail.com" style="font-size:13px">Copiar</button></dd>
+        <dt>Web</dt><dd><a href="https://www.sergioarteagafotografia.com/" target="_blank" rel="noopener noreferrer">sergioarteagafotografia.com</a></dd>
+        <dt>Actividad</dt><dd>Tablón gratuito y sin ánimo de lucro para compartir gastos de salidas fotográficas.</dd>
+        <dt>Alojamiento</dt><dd>La página se publica mediante el servicio de páginas de Claude, de Anthropic.</dd>
+      </dl>
+      <p><b>Contenidos.</b> El diseño y los textos de la página pertenecen a su titular. Lo que publica cada usuario (salidas, presentaciones, preguntas y mensajes) sigue siendo suyo, y es responsable de ello.</p>
+      <p><b>Enlaces a otras webs.</b> Las salidas pueden enlazar a webs externas (alojamientos, reservas, Instagram…). Su contenido es responsabilidad de esas webs.</p>
+    </div>
+
+    <div class="rules" id="legal-priv" role="tabpanel" hidden>
+      <p><b>Responsable.</b> Sergio Arteaga Fotografía · <span class="sel">sergioarteagafotografia@gmail.com</span></p>
+      <p><b>Qué datos se guardan.</b> Solo los que escribes tú: alias, provincia desde la que sales, Instagram, web y presentación; las salidas que publicas, en cuáles te apuntas, y tus preguntas y mensajes. Además, un identificador interno de tu cuenta, para saber qué es tuyo. No se piden teléfono, DNI, dirección ni datos bancarios.</p>
+      <p><b>Para qué.</b> Para mostrar las salidas, calcular el reparto de gastos y que los participantes puedan organizarse.</p>
+      <p><b>Base legal.</b> Tu consentimiento al aceptar estas condiciones y el uso del propio servicio que pides.</p>
+      <p><b>Quién los ve.</b> Cualquier persona con acceso al enlace de la página. Los datos se alojan en el servicio de páginas de Claude, de Anthropic, que actúa como proveedor y puede tratarlos fuera del Espacio Económico Europeo con sus propias garantías.</p>
+      <p><b>Cuánto tiempo.</b> Mientras existan tu perfil o las salidas en las que participas. Puedes borrar tu perfil desde «Mi perfil» o pedir que se borre todo escribiendo al correo de contacto.</p>
+      <p><b>En tu navegador.</b> La página recuerda en tu propio navegador tu alias, provincia e Instagram para rellenar formularios, tu filtro de origen, la fecha de tu última visita y si has aceptado estas condiciones. No se usan cookies de publicidad ni de analítica.</p>
+      <p><b>Tus derechos.</b> Puedes pedir acceso, corrección, borrado, oposición, limitación o portabilidad de tus datos escribiendo al correo de contacto. Si crees que no se han atendido bien, puedes reclamar ante la Agencia Española de Protección de Datos (aepd.es).</p>
+    </div>
+
+    <div class="actions"><button class="btn-ghost" type="button" id="rules-close">Cerrar</button></div>
+  </section>
+
+  <section class="panel" id="form-panel" hidden>
+    <h2>Nueva salida</h2>
+    <form id="trip-form" novalidate>
+      <div class="fstack">
+        <label>Título<input id="f-title" maxlength="80" placeholder="Auroras en el sur de Islandia"></label>
+
+        <fieldset>
+          <legend>Destino</legend>
+          <div class="grid2">
+            <label>Dónde<select id="f-dest-tipo"><option value="es">España</option><option value="ext">Extranjero</option></select></label>
+            <label id="w-prov">Provincia<select id="f-prov"></select></label>
+            <label id="w-pais" hidden>País<input id="f-pais" maxlength="40" placeholder="Islandia"></label>
+          </div>
+          <label>Lugar concreto <span class="hint">opcional</span><input id="f-lugar" maxlength="60" placeholder="Vík, Jökulsárlón, Skógafoss"></label>
+        </fieldset>
+
+        <div class="grid2">
+          <label>Salida<input id="f-start" type="date"></label>
+          <label>Vuelta<input id="f-end" type="date"></label>
+        </div>
+        <div class="grid2">
+          <label>Plazas totales <span class="hint">contándote a ti</span><input id="f-plazas" type="number" min="2" max="12" value="4"></label>
+          <label>Luz que se busca
+            <select id="f-luz"><option>Amanecer</option><option>Atardecer</option><option>Amanecer y atardecer</option><option>Nocturna</option><option>Día completo</option></select>
+          </label>
+        </div>
+        <div class="grid2">
+          <label>Plazas mínimas para que salga <span class="hint">contándote a ti</span><input id="f-minimo" type="number" min="2" max="12" value="2"></label>
+          <label>Fecha límite para apuntarse<input id="f-limite" type="date"></label>
+        </div>
+        <label class="check"><input type="checkbox" id="f-cancel"> Mis reservas tienen cancelación gratuita hasta después de la fecha límite</label>
+        <p class="hint-block">Hasta esa fecha, cualquiera se apunta o se borra sin coste. Si entonces no se llega al mínimo, la salida no sale. Si se llega, queda confirmada: ya no entra gente nueva y quien se borre paga su parte, salvo que alguien ocupe su plaza.</p>
+        <fieldset>
+          <legend>Tipo de fotografía <span class="hint">marca todos los que encajen</span></legend>
+          <div class="tipos" id="f-tipos"></div>
+        </fieldset>
+
+        <fieldset>
+          <legend>Dónde se duerme <span class="hint">marca todos los que haya</span></legend>
+          <div class="tipos" id="f-aloj"></div>
+          <label>Material que tiene que llevar cada uno <span class="hint">opcional · tienda, saco, esterilla, frontal…</span><input id="f-material" maxlength="200" placeholder="Saco de −5 °C, esterilla y frontal. Las tiendas se comparten de dos en dos."></label>
+        </fieldset>
+
+        <fieldset>
+          <legend>Exigencia física</legend>
+          <div class="modes">
+            <label><input type="radio" name="trek" id="tk-no" value="no" checked><span><b>Sin caminatas largas</b>Se llega en coche o andando poco hasta los spots.</span></label>
+            <label><input type="radio" name="trek" id="tk-si" value="si"><span><b>Con trekking</b>Hay que caminar: rutas, subidas o travesía con mochila.</span></label>
+          </div>
+          <div id="w-trek" class="fstack" hidden>
+            <p class="hint-block">Pon el día más duro de la salida. Con esos datos se calcula el nivel, como en las fichas de montaña (método MIDE); si no encaja, puedes cambiarlo.</p>
+            <div class="grid3">
+              <label>Horas de marcha<input id="tk-horas" type="number" min="0" max="24" step="0.5" placeholder="5"></label>
+              <label>Desnivel de subida (m)<input id="tk-desn" type="number" min="0" max="5000" step="50" placeholder="900"></label>
+              <label>Distancia (km)<input id="tk-km" type="number" min="0" max="80" step="0.5" placeholder="14"></label>
+            </div>
+            <div class="grid2">
+              <label>Terreno
+                <select id="tk-terreno"><option value="pista">Pista o camino ancho</option><option value="senda" selected>Senda de montaña</option><option value="sinsenda">Sin senda, pedreras o algún paso con manos</option></select>
+              </label>
+              <label>Mochila
+                <select id="tk-mochila"><option value="ligera">Ligera (solo la del día y el equipo de foto)</option><option value="pesada">Pesada (tienda, saco, comida y equipo)</option></select>
+              </label>
+            </div>
+            <div class="nivel-calc" id="tk-nivel-box">
+              <span>Nivel calculado:</span> <span class="lvl" id="tk-nivel-auto">—</span>
+              <label class="inline">Cambiarlo a <select id="tk-nivel"><option value="">El calculado</option></select></label>
+            </div>
+          </div>
+        </fieldset>
+
+        <fieldset>
+          <legend>Cómo se llega</legend>
+          <div class="modes">
+            <label><input type="radio" name="modo" id="m-juntos" value="juntos" checked><span><b>Salimos juntos</b>Hay un punto de salida y el viaje de ida se paga a medias.</span></label>
+            <label><input type="radio" name="modo" id="m-alli" value="alli"><span><b>Nos vemos allí</b>Cada uno llega por su cuenta al punto de encuentro.</span></label>
+          </div>
+          <label id="w-salida">Salimos desde<select id="f-salida"></select></label>
+          <div id="w-alli" class="fstack" hidden>
+            <label>Punto de encuentro<input id="f-encuentro" maxlength="60" placeholder="Aeropuerto de Keflavik"></label>
+            <label>Tú sales desde <span class="hint">opcional</span><select id="f-org-origen"></select></label>
+            <label class="check"><input type="checkbox" id="f-org-comparte"> Me interesa compartir el viaje hasta allí con gente de mi zona</label>
+          </div>
+        </fieldset>
+
+        <label class="check" id="w-proxy" hidden><input type="checkbox" id="f-proxy"> La organiza otra persona y la publico yo por ella</label>
+        <div class="grid2">
+          <label><span id="f-org-label">Tu nombre o alias</span><input id="f-org" maxlength="40" placeholder="Cómo te verán los demás"></label>
+          <label>Instagram <span class="hint">opcional</span><input id="f-org-ig" maxlength="60" placeholder="@usuario" autocomplete="off"></label>
+        </div>
+        <label>Resumen del plan <span class="hint">lo general: nivel de caminata, qué llevar, ambiente…</span><textarea id="f-desc" maxlength="600"></textarea></label>
+        <fieldset>
+          <legend>Planning día a día <span class="hint">opcional · se puede completar o cambiar después</span></legend>
+          <div id="f-plan" class="plan-ed"><p class="hint-block">Elige primero las fechas de salida y vuelta y aparecerán aquí los días.</p></div>
+        </fieldset>
+
+        <fieldset>
+          <legend>Gastos en destino <span class="hint">se reparten siempre entre todos</span></legend>
+          <div class="cost-rows" id="cost-dest"></div>
+          <div><button type="button" class="btn-ghost btn-sm" id="add-dest">Añadir gasto</button></div>
+        </fieldset>
+        <fieldset id="w-lleg">
+          <legend>Llegada <span class="hint">viaje de ida y vuelta, a medias</span></legend>
+          <div class="cost-rows" id="cost-lleg"></div>
+          <div><button type="button" class="btn-ghost btn-sm" id="add-lleg">Añadir gasto</button></div>
+        </fieldset>
+        <span class="form-total" id="form-total"></span>
+
+        <label class="check"><input type="checkbox" id="f-rules"> Soy mayor de 18 años y acepto las <button type="button" class="linklike" data-open-rules="cond">condiciones de uso</button> y la <button type="button" class="linklike" data-open-rules="priv">política de privacidad</button></label>
+        <p class="err" id="form-err" hidden></p>
+        <div class="actions">
+          <button class="btn-primary" type="submit" id="btn-save">Publicar salida</button>
+          <button class="btn-ghost" type="button" id="btn-cancel">Cancelar</button>
+        </div>
+      </div>
+    </form>
+  </section>
+
+  <section class="filters" aria-label="Filtros">
+    <div class="frow" role="group" aria-label="Cuándo">
+      <span class="flabel">Cuándo</span>
+      <button type="button" class="seg-btn" data-when="proximas" aria-pressed="true">Próximas</button>
+      <button type="button" class="seg-btn" data-when="mes" aria-pressed="false">Este mes</button>
+      <button type="button" class="seg-btn" data-when="siguiente" aria-pressed="false">Mes que viene</button>
+      <button type="button" class="seg-btn" data-when="rango" aria-pressed="false">Mis fechas</button>
+      <button type="button" class="seg-btn" data-when="todas" aria-pressed="false">Todas</button>
+    </div>
+    <div class="range" id="range" hidden>
+      <label>Libre desde<input id="r-from" type="date"></label>
+      <label>hasta<input id="r-to" type="date"></label>
+    </div>
+    <div class="frow" id="dest-row" role="group" aria-label="Destino"></div>
+    <details class="more-filters">
+    <summary>Más filtros <span class="hint">tipo de foto, origen, precio, exigencia, alojamiento</span></summary>
+    <div class="more-body">
+    <div class="frow" id="tipo-row" role="group" aria-label="Tipo de fotografía"></div>
+    <div class="from-row">
+      <label class="inline">Salgo desde <select id="flt-from"></select></label>
+      <label class="inline">Hasta <input id="flt-precio" type="number" min="0" step="10" placeholder="sin límite" style="width:110px"> € por persona</label>
+      <label class="check inline"><input type="checkbox" id="flt-libres"> Solo con plazas libres</label>
+      <label class="inline">Exigencia hasta <select id="flt-nivel"></select></label>
+      <label class="inline">Dormir en <select id="flt-aloj"></select></label>
+    </div>
+    </div>
+    </details>
+    <div class="count-row">
+      <span class="count" id="count"></span>
+      <button type="button" class="btn-ghost btn-sm" id="btn-clear" hidden>Quitar filtros</button>
+    </div>
+  </section>
+
+  <section class="list" id="list" aria-live="polite"></section>
+
+  <p class="foot legal-links"><button type="button" class="linklike" data-open-rules="cond">Condiciones de uso</button> · <button type="button" class="linklike" data-open-rules="aviso">Aviso legal</button> · <button type="button" class="linklike" data-open-rules="priv">Privacidad</button> · Sergio Arteaga Fotografía</p>
+  <p class="foot">En «Salimos juntos» el precio incluye ida y vuelta. En «Nos vemos allí» incluye solo los gastos en destino; cada uno paga su viaje hasta el punto de encuentro. Comidas y gastos personales quedan fuera. Los enlaces de cada gasto los pone quien organiza: ábrelos y comprueba precio y fechas antes de pagar nada. Los chats los puede leer cualquiera con acceso a esta página, así que no compartas datos privados en ellos.</p>
+</div>
+
+<script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2.45.4/dist/umd/supabase.js"></script>
+<script>
+(() => {
+  const $ = (s) => document.querySelector(s);
+  const eur = (n) => new Intl.NumberFormat("es-ES", { style: "currency", currency: "EUR", maximumFractionDigits: n % 1 ? 2 : 0 }).format(n);
+  const fdate = (s) => s ? new Date(s + "T12:00:00").toLocaleDateString("es-ES", { day: "numeric", month: "short" }) : "";
+  const ftime = (ms) => new Date(ms).toLocaleString("es-ES", { day: "numeric", month: "short", hour: "2-digit", minute: "2-digit" });
+  const esc = (s) => String(s ?? "").replace(/[&<>"']/g, (c) => ({ "&": "&amp;", "<": "&lt;", ">": "&gt;", '"': "&quot;", "'": "&#39;" }[c]));
+  const store = {
+    get(k) { try { return localStorage.getItem("sc." + k) || ""; } catch { return ""; } },
+    set(k, v) { try { localStorage.setItem("sc." + k, v); } catch {} }
+  };
+
+  const PROVINCIAS = ["A Coruña","Álava","Albacete","Alicante","Almería","Asturias","Ávila","Badajoz","Barcelona","Bizkaia","Burgos","Cáceres","Cádiz","Cantabria","Castellón","Ceuta","Ciudad Real","Córdoba","Cuenca","Gipuzkoa","Girona","Granada","Guadalajara","Huelva","Huesca","Illes Balears","Jaén","La Rioja","Las Palmas","León","Lleida","Lugo","Madrid","Málaga","Melilla","Murcia","Navarra","Ourense","Palencia","Pontevedra","Salamanca","Santa Cruz de Tenerife","Segovia","Sevilla","Soria","Tarragona","Teruel","Toledo","Valencia","Valladolid","Zamora","Zaragoza"];
+  const FUERA = "Fuera de España";
+  const opts = (list, placeholder) => (placeholder ? `<option value="">${placeholder}</option>` : "") + list.map((p) => `<option>${esc(p)}</option>`).join("");
+  $("#f-prov").innerHTML = opts(PROVINCIAS, "Elige provincia");
+  $("#f-salida").innerHTML = opts(PROVINCIAS, "Elige provincia");
+  $("#f-org-origen").innerHTML = opts([...PROVINCIAS, FUERA], "Sin indicar");
+  $("#flt-from").innerHTML = opts([...PROVINCIAS, FUERA], "Cualquier sitio");
+  const TIPOS = ["Paisaje", "Astrofotografía", "Costa", "Montaña", "Bosque", "Fauna", "Urbana", "Larga exposición"];
+  $("#f-aloj").innerHTML = ["hotel", "albergue", "camping", "vivac", "furgo", "ninguno"].map((k) => `<label><input type="checkbox" id="f-aloj-${k}" value="${k}"> ${{ hotel: "Hotel o casa", albergue: "Albergue o refugio", camping: "Camping con tienda", vivac: "Acampada libre o vivac", furgo: "Furgoneta o autocaravana", ninguno: "Sin noche fuera" }[k]}</label>`).join("");
+  $("#tk-nivel").innerHTML = `<option value="">El calculado</option>` + ["Fácil", "Moderada", "Exigente", "Muy exigente"].map((n, i) => `<option value="${i}">${n}</option>`).join("");
+  $("#flt-nivel").innerHTML = `<option value="">Cualquiera</option><option value="-1">Sin trekking</option>` + ["Fácil", "Moderada", "Exigente"].map((n, i) => `<option value="${i}">${n}</option>`).join("");
+  $("#flt-aloj").innerHTML = `<option value="">Cualquier sitio</option>` + Object.entries({ hotel: "Hotel o casa", albergue: "Albergue o refugio", camping: "Camping con tienda", vivac: "Acampada libre o vivac", furgo: "Furgoneta o autocaravana" }).map(([k, v]) => `<option value="${k}">${v}</option>`).join("");
+  $("#f-tipos").innerHTML = TIPOS.map((k, i) => `<label><input type="checkbox" id="f-tipo-${i}" value="${esc(k)}"> ${esc(k)}</label>`).join("");
+
+  let db = null, uid = null, trips = [], demo = true, loaded = false;
+  let isOwner = false, readOnly = false;
+  let openJoin = null;          // id de la salida con el formulario de apuntarse abierto
+  let openAdd = null;           // id de la salida donde el dueño apunta a otra persona
+  const newId = () => "m-" + Date.now().toString(36) + Math.random().toString(36).slice(2, 6);
+
+  // ---------- Portadas: paisaje generado según la luz que se busca ----------
+  // Cada salida tiene siempre el mismo paisaje (se calcula a partir de su identificador).
+  function hashStr(str) { let h = 2166136261; for (const ch of String(str)) { h ^= ch.charCodeAt(0); h = Math.imul(h, 16777619); } return h >>> 0; }
+  function rng(seed) { let a = seed; return () => { a = (a + 0x6D2B79F5) | 0; let t = Math.imul(a ^ (a >>> 15), 1 | a); t = (t + Math.imul(t ^ (t >>> 7), 61 | t)) ^ t; return ((t ^ (t >>> 14)) >>> 0) / 4294967296; }; }
+  const SKIES = {
+    amanecer:  { sky: ["#25335f", "#b4688d", "#ffc98d"], sun: "#fff1cf", sunY: 150, glow: "#ffcf96", ridge: ["#6b5479", "#433657", "#231d33"] },
+    atardecer: { sky: ["#1b1f48", "#a8466a", "#f59b45"], sun: "#ffd68a", sunY: 142, glow: "#ff9f57", ridge: ["#683659", "#3f2544", "#1b1326"] },
+    dorada:    { sky: ["#33285d", "#d0705a", "#ffd18e"], sun: "#fff3cf", sunY: 128, glow: "#ffbf6a", ridge: ["#7c4b56", "#4b2f3d", "#21161e"] },
+    noche:     { sky: ["#03050c", "#0b1430", "#1f3566"], moon: true, stars: true, ridge: ["#1a2645", "#111a31", "#080d19"] },
+    dia:       { sky: ["#3b78bd", "#89bde4", "#dcecf3"], sun: "#ffffff", sunY: 46, glow: "#ffffff", ridge: ["#7192aa", "#4b6b80", "#2a4150"] },
+  };
+  function coverSVG(seed, luz) {
+    const c = SKIES[luz] || SKIES.dia, r = rng(hashStr(seed + "|" + luz)), W = 400, H = 225;
+    const id = "c" + hashStr(seed + luz).toString(36);
+    const f = (n) => n.toFixed(1);
+    let extra = "";
+    if (c.stars) {
+      for (let i = 0; i < 70; i++) extra += `<circle cx="${f(r() * W)}" cy="${f(r() * H * .62)}" r="${(r() * .9 + .25).toFixed(2)}" fill="#fff" opacity="${(r() * .6 + .3).toFixed(2)}"/>`;
+      const ay = 40 + r() * 30;
+      extra += `<path d="M-20 ${f(ay + 40)} C 90 ${f(ay - 20)}, 180 ${f(ay + 60)}, 260 ${f(ay)} S 380 ${f(ay + 10)}, 430 ${f(ay - 10)}" stroke="url(#${id}a)" stroke-width="34" fill="none" opacity=".55" filter="url(#${id}b)"/>`;
+    }
+    const sx = 70 + r() * 260;
+    if (c.moon) extra += `<circle cx="${f(sx)}" cy="46" r="11" fill="#f3efe2" opacity=".95"/><circle cx="${f(sx + 4)}" cy="43" r="10" fill="${c.sky[0]}" opacity=".9"/>`;
+    else extra += `<circle cx="${f(sx)}" cy="${c.sunY}" r="70" fill="url(#${id}g)"/><circle cx="${f(sx)}" cy="${c.sunY}" r="15" fill="${c.sun}"/>`;
+    let ridges = "";
+    [[118, 42], [148, 36], [178, 28]].forEach(([base, amp], li) => {
+      const step = W / (10 + li * 4);
+      let d = `M0 ${H} L0 ${f(base - r() * amp)}`;
+      for (let x = step; x <= W + step; x += step) d += ` L${f(x)} ${f(base - r() * amp * (r() < .25 ? 1.35 : 1))}`;
+      d += ` L${W} ${H} Z`;
+      ridges += `<path d="${d}" fill="${c.ridge[li]}"/><path d="${d}" fill="url(#${id}h)" opacity="${.45 - li * .12}"/>`;
+    });
+    return `<svg viewBox="0 0 ${W} ${H}" preserveAspectRatio="xMidYMid slice" aria-hidden="true">
+      <defs>
+        <linearGradient id="${id}s" x1="0" y1="0" x2="0" y2="1"><stop offset="0" stop-color="${c.sky[0]}"/><stop offset=".62" stop-color="${c.sky[1]}"/><stop offset="1" stop-color="${c.sky[2]}"/></linearGradient>
+        <radialGradient id="${id}g"><stop offset="0" stop-color="${c.glow || "#fff"}" stop-opacity=".75"/><stop offset="1" stop-color="${c.glow || "#fff"}" stop-opacity="0"/></radialGradient>
+        <linearGradient id="${id}h" x1="0" y1="0" x2="0" y2="1"><stop offset="0" stop-color="${c.sky[2]}" stop-opacity=".7"/><stop offset=".5" stop-color="${c.sky[2]}" stop-opacity="0"/></linearGradient>
+        <linearGradient id="${id}a" x1="0" y1="0" x2="1" y2="0"><stop offset="0" stop-color="#3dffb0" stop-opacity="0"/><stop offset=".4" stop-color="#3dffb0"/><stop offset=".75" stop-color="#7d6bff"/><stop offset="1" stop-color="#7d6bff" stop-opacity="0"/></linearGradient>
+        <filter id="${id}b" x="-20%" y="-50%" width="140%" height="200%"><feGaussianBlur stdDeviation="9"/></filter>
+      </defs>
+      <rect width="${W}" height="${H}" fill="url(#${id}s)"/>${extra}${ridges}
+    </svg>`;
+  }
+
+  // ---------- Exigencia y alojamiento ----------
+  // Un nivel sencillo de 4 pasos (como Komoot o Wikiloc) calculado con los datos de las fichas MIDE:
+  // horas de marcha, desnivel, terreno y peso de la mochila. El organizador puede cambiarlo.
+  const NIVELES = ["Fácil", "Moderada", "Exigente", "Muy exigente"];
+  const NIVEL_TXT = [
+    "Para cualquiera que camine con normalidad.",
+    "Hace falta costumbre de andar por el monte.",
+    "Hace falta buena forma física y experiencia en montaña.",
+    "Solo para gente muy en forma y con experiencia.",
+  ];
+  const TERRENO = { pista: "pista o camino", senda: "senda de montaña", sinsenda: "sin senda o con pasos de manos" };
+  const ALOJ = { hotel: "Hotel o casa", albergue: "Albergue o refugio", camping: "Camping con tienda", vivac: "Acampada libre o vivac", furgo: "Furgoneta o autocaravana", ninguno: "Sin noche fuera" };
+  function nivelAuto(k) {
+    if (!k) return null;
+    const h = Number(k.horas) || 0, d = Number(k.desnivel) || 0;
+    const byH = h <= 3 ? 0 : h <= 6 ? 1 : h <= 10 ? 2 : 3;          // MIDE «esfuerzo»
+    const byD = d <= 500 ? 0 : d <= 1000 ? 1 : d <= 1500 ? 2 : 3;   // desnivel de subida
+    const byT = k.terreno === "sinsenda" ? 2 : k.terreno === "senda" ? 1 : 0;
+    let n = Math.max(byH, byD, byT);
+    if (k.mochila === "pesada" && n < 3) n++;                       // cargar con tienda lo sube un nivel
+    return n;
+  }
+  const nivelDe = (t) => !t.trek ? null : (Number.isInteger(t.trek.nivel) ? t.trek.nivel : nivelAuto(t.trek));
+  const lvlChip = (n) => n == null ? `<span class="lvl lx">Sin trekking</span>` : `<span class="lvl l${n}" title="${esc(NIVEL_TXT[n])}">${NIVELES[n]}</span>`;
+  function trekLine(t) {
+    const n = nivelDe(t);
+    const k = t.trek;
+    const alo = (t.alojamiento || []).map((a) => ALOJ[a]).filter(Boolean);
+    if (n == null && !alo.length && !t.material) return "";
+    const datos = k ? [
+      k.horas ? `<b>${String(k.horas).replace(".", ",")} h</b> de marcha` : "",
+      k.desnivel ? `<b>+${k.desnivel} m</b>` : "",
+      k.km ? `<b>${String(k.km).replace(".", ",")} km</b>` : "",
+      TERRENO[k.terreno] || "",
+      k.mochila === "pesada" ? "mochila pesada" : "",
+    ].filter(Boolean).join(" · ") : "";
+    return `<div class="trek-line">${lvlChip(n)}${n != null ? `<span>${NIVEL_TXT[n]}${datos ? ` El día más duro: ${datos}.` : ""}</span>` : ""}</div>
+      ${alo.length ? `<div class="trek-line"><span>Se duerme en:</span> <b>${alo.map(esc).join(" · ")}</b></div>` : ""}
+      ${t.material ? `<p class="material"><b>Lleva cada uno:</b> ${esc(t.material)}</p>` : ""}`;
+  }
+  function readTrek() {
+    if (!$("#tk-si").checked) return null;
+    const num = (sel, max) => { const v = Number($(sel).value); return Number.isFinite(v) && v > 0 ? Math.min(v, max) : 0; };
+    const k = { horas: num("#tk-horas", 24), desnivel: Math.round(num("#tk-desn", 5000)), km: num("#tk-km", 80),
+      terreno: $("#tk-terreno").value, mochila: $("#tk-mochila").value };
+    const manual = $("#tk-nivel").value;
+    if (manual !== "") k.nivel = Number(manual);
+    return k;
+  }
+  function syncTrek() {
+    const on = $("#tk-si").checked;
+    $("#w-trek").hidden = !on;
+    if (!on) return;
+    const k = readTrek(); delete k.nivel;
+    const n = nivelAuto(k);
+    $("#tk-nivel-auto").outerHTML = `<span class="lvl l${n}" id="tk-nivel-auto">${NIVELES[n]}</span>`;
+  }
+  function cleanTrek(k) {
+    if (!k || typeof k !== "object") return null;
+    const num = (v, max) => { v = Number(v); return Number.isFinite(v) && v > 0 ? Math.min(v, max) : 0; };
+    const out = { horas: num(k.horas, 24), desnivel: Math.round(num(k.desnivel, 5000)), km: num(k.km, 80),
+      terreno: TERRENO[k.terreno] ? k.terreno : "senda", mochila: k.mochila === "pesada" ? "pesada" : "ligera" };
+    if (Number.isInteger(k.nivel) && k.nivel >= 0 && k.nivel <= 3) out.nivel = k.nivel;
+    return out;
+  }
+
+  // ---------- Planning día a día ----------
+  // Un día por fecha entre la salida y la vuelta (máximo 14). Cada momento: hora (opcional), qué se hace y enlace a la ubicación.
+  const MAX_DIAS = 14;
+  const fdia = (d) => new Date(d + "T12:00:00").toLocaleDateString("es-ES", { weekday: "short", day: "numeric", month: "short" });
+  function diasEntre(a, b) {
+    if (!a) return [];
+    const out = [], d = new Date(a + "T12:00:00"), fin = new Date((b && b >= a ? b : a) + "T12:00:00");
+    while (d <= fin && out.length < MAX_DIAS) { out.push(iso(d)); d.setDate(d.getDate() + 1); }
+    return out;
+  }
+  let planN = 0;
+  function planRow(box, it = {}) {
+    const n = planN++;
+    const row = document.createElement("div");
+    row.className = "plan-row";
+    row.innerHTML = `<input type="time" id="pl-h-${n}" aria-label="Hora" value="${esc(it.hora || "")}">
+      <input id="pl-q-${n}" maxlength="120" placeholder="Qué se hace (p. ej. Amanecer en el Lago Ercina)" aria-label="Qué se hace" value="${esc(it.que || "")}">
+      <button type="button" class="btn-ghost" aria-label="Quitar momento">✕</button>
+      <input class="url" id="pl-u-${n}" maxlength="300" inputmode="url" placeholder="Enlace a la ubicación (Google Maps…) · opcional" aria-label="Enlace a la ubicación" value="${esc(it.enlace || "")}">`;
+    row.querySelector("button").onclick = () => row.remove();
+    box.appendChild(row);
+  }
+  // Pinta el editor para las fechas dadas, conservando lo ya escrito en cada día.
+  function planEditor(container, inicio, fin, existing) {
+    const prev = Object.fromEntries((existing || []).map((d) => [d.dia, d]));
+    const dias = diasEntre(inicio, fin);
+    if (!dias.length) { container.innerHTML = `<p class="hint-block">Elige primero las fechas de salida y vuelta y aparecerán aquí los días.</p>`; return; }
+    container.innerHTML = "";
+    dias.forEach((dia, i) => {
+      const box = document.createElement("div");
+      box.className = "plan-day"; box.dataset.dia = dia;
+      box.innerHTML = `<h4><span class="n">Día ${i + 1}</span>${esc(fdia(dia))}</h4><div class="rows"></div>
+        <div><button type="button" class="btn-ghost btn-sm">Añadir momento</button></div>`;
+      const rows = box.querySelector(".rows");
+      const items = prev[dia]?.items || [];
+      (items.length ? items : [{}]).forEach((it) => planRow(rows, it));
+      box.querySelector(".btn-sm").onclick = () => { planRow(rows); rows.lastElementChild.querySelector("input[type=time]").focus(); };
+      container.appendChild(box);
+    });
+    if (diasEntre(inicio, fin).length >= MAX_DIAS && fin > dias[dias.length - 1]) {
+      container.insertAdjacentHTML("beforeend", `<p class="hint-block">El planning admite hasta ${MAX_DIAS} días.</p>`);
+    }
+  }
+  function readPlan(container) {
+    return [...container.querySelectorAll(".plan-day")].map((box) => ({
+      dia: box.dataset.dia,
+      items: [...box.querySelectorAll(".plan-row")].map((r) => {
+        const [h, q, u] = r.querySelectorAll("input");
+        const enlace = cleanUrl(u.value);
+        return { hora: /^\d{2}:\d{2}$/.test(h.value) ? h.value : "", que: q.value.trim().slice(0, 120), ...(enlace ? { enlace } : {}) };
+      }).filter((it) => it.que).sort((a, b) => (a.hora || "99").localeCompare(b.hora || "99")),
+    })).filter((d) => d.items.length);
+  }
+  // Ficha: planning desplegable, un bloque por día.
+  function planBlock(t, canEdit) {
+    const plan = (t.planning || []).filter((d) => d.items?.length);
+    if (!plan.length && !canEdit) return "";
+    const dias = diasEntre(t.inicio, t.fin);
+    const byDay = Object.fromEntries(plan.map((d) => [d.dia, d.items]));
+    const n = plan.reduce((a, d) => a + d.items.length, 0);
+    const body = plan.length ? dias.map((dia, i) => {
+      const items = byDay[dia] || [];
+      return `<div class="pv-day"><h4><span class="n">Día ${i + 1}</span>${esc(fdia(dia))}</h4>
+        ${items.length ? `<ol>${items.map((it) => {
+          const link = safeLink(it.enlace);
+          return `<li><span class="h">${esc(it.hora || "—")}</span><span>${esc(it.que)}${link ? ` · <a href="${esc(link)}" target="_blank" rel="noopener noreferrer">ubicación ↗</a>` : ""}</span></li>`;
+        }).join("")}</ol>` : `<span class="empty-day">Día libre o sin planificar</span>`}</div>`;
+    }).join("") : `<p class="hint-block">Todavía no hay planning. Añádelo para que la gente sepa qué se va a hacer cada día.</p>`;
+    return `<details class="plan" data-key="plan-${t.id}"${plan.length ? "" : " open"}><summary>Planning${plan.length ? ` · ${dias.length} ${dias.length === 1 ? "día" : "días"}, ${n} ${n === 1 ? "momento" : "momentos"}` : ""}</summary>
+      <div class="plan-view">${body}</div>
+      ${canEdit ? `<div style="margin-top:10px"><button type="button" class="btn-ghost btn-sm" data-act="plan-edit" data-id="${t.id}">${plan.length ? "Editar planning" : "Añadir planning"}</button></div>` : ""}
+    </details>`;
+  }
+  function cleanPlan(arr, inicio, fin) {
+    const ok = new Set(diasEntre(inicio, fin));
+    return (Array.isArray(arr) ? arr : []).filter((d) => ok.has(d?.dia)).map((d) => ({
+      dia: d.dia,
+      items: (Array.isArray(d.items) ? d.items : []).slice(0, 20).map((it) => {
+        const enlace = cleanUrl(it?.enlace);
+        return { hora: /^\d{2}:\d{2}$/.test(it?.hora || "") ? it.hora : "", que: String(it?.que ?? "").trim().slice(0, 120), ...(enlace ? { enlace } : {}) };
+      }).filter((it) => it.que),
+    })).filter((d) => d.items.length);
+  }
+
+  // ---------- Cuentas y base de datos (Supabase) ----------
+  // La clave es pública a propósito: lo que cada persona puede leer o cambiar lo deciden las reglas de la base de datos.
+  const SB_URL = "https://rendbgipuidaebowpvzc.supabase.co";
+  const SB_KEY = "sb_publishable_8Qbe8VD5Qbrol__bqbfXaQ_PSxcLcpw";
+  let sb = null, userEmail = "";
+  const LISTA_DB = { costesDestino: "destino", costes: "destino", costesLlegada: "llegada" };
+  const ok = ({ data, error }) => { if (error) throw error; return data; };
+  const nowIso = () => new Date().toISOString();
+  // Los avisos que escribe la propia base de datos (apuntarse, borrarse…) ya están en castellano y se enseñan tal cual.
+  const errMsg = (ex, def) => (ex && ex.code === "P0001" && ex.message) ? ex.message : def;
+  const api = {
+    async loadAll() {
+      const q = async (p) => ok(await p) || [];
+      const [S, P, I, B, PG, C, Q, R, H] = await Promise.all([
+        q(sb.from("salidas").select("*")),
+        q(sb.from("perfiles").select("id,alias,origen,instagram,web,bio,normas")),
+        q(sb.from("inscripciones").select("*").order("created_at")),
+        uid ? q(sb.from("bajas").select("*").order("created_at")) : [],
+        uid ? q(sb.from("pagos").select("*")) : [],
+        uid ? q(sb.from("comprobantes").select("*")) : [],
+        q(sb.from("preguntas").select("*")),
+        q(sb.rpc("resumen_publico")),
+        q(sb.rpc("comprobantes_hechos")),
+      ]);
+      perfiles = Object.fromEntries(P.map((p) => [p.id, p]));
+      const al = (id) => perfiles[id]?.alias || "Alguien";
+      const igOf = (id) => perfiles[id]?.instagram ? { instagram: perfiles[id].instagram } : {};
+      trips = S.map((x) => {
+        const mine = (rows) => rows.filter((r) => r.salida_id === x.id);
+        const ins = mine(I);
+        const persona = (r) => ({ id: r.user_id, alias: al(r.user_id), origen: r.origen || "", comparte: !!r.comparte, ...igOf(r.user_id), ...(r.desde_espera ? { desdeEspera: true } : {}), ts: Date.parse(r.created_at) });
+        const conComprobante = (lista, arr) => (Array.isArray(arr) ? arr : []).map((c, i) => {
+          const cp = C.find((r) => r.salida_id === x.id && r.lista === lista && r.idx === i);
+          const hecho = H.some((r) => r.salida_id === x.id && r.lista === lista && r.idx === i);
+          return { ...c, comprobante: cp && (cp.codigo || cp.enlace) ? { codigo: cp.codigo || "", enlace: cp.enlace || "", ts: Date.parse(cp.updated_at) } : hecho ? { oculto: true } : null };
+        });
+        const bajas = mine(B).map((b) => ({ id: b.user_id, alias: al(b.user_id), ts: Date.parse(b.created_at), importe: Number(b.importe) || 0, cubiertaPor: b.cubierta_por ? al(b.cubierta_por) : "" }));
+        // Quien no organiza no ve quién se borró, pero sí cuántas plazas siguen pagándose: cuenta para el precio y el estado.
+        const pend = R.find((r) => r.salida_id === x.id)?.bajas_sin_cubrir || 0;
+        for (let k = bajas.filter((b) => !b.cubiertaPor).length; k < pend; k++) bajas.push({ id: "oculta-" + k, alias: "Una persona", ts: 0, importe: 0, cubiertaPor: "", oculta: true });
+        return {
+          id: x.id, titulo: x.titulo, destino: x.destino || {}, lugar: x.lugar || "", inicio: x.inicio, fin: x.fin, plazas: x.plazas, minimo: x.minimo,
+          limite: x.limite, luz: x.luz || "", tipos: x.tipos || [], alojamiento: x.alojamiento || [], material: x.material || "", trek: x.trek || null,
+          modo: x.modo, salida: x.salida || "", encuentro: x.encuentro || "", descripcion: x.descripcion || "", planning: x.planning || [],
+          costesDestino: conComprobante("destino", x.costes_destino), costesLlegada: conComprobante("llegada", x.costes_llegada),
+          cancelGratis: !!x.cancel_gratis, creado: x.created_at,
+          organizador: { id: x.organizador, alias: al(x.organizador), origen: x.org_origen || "", comparte: !!x.org_comparte, ...igOf(x.organizador) },
+          apuntados: ins.filter((r) => r.estado === "apuntado").map(persona),
+          espera: ins.filter((r) => r.estado === "espera").map(persona),
+          bajas,
+          pagos: Object.fromEntries(mine(PG).map((p) => [p.user_id, { importe: Number(p.importe) || 0, ts: Date.parse(p.updated_at) }])),
+          preguntas: mine(Q).map((p) => ({ id: p.id, autor: p.autor, alias: al(p.autor), texto: p.texto, ts: Date.parse(p.created_at), ...(p.respuesta ? { respuesta: p.respuesta, respTs: Date.parse(p.respondida_at) || 0 } : {}) })),
+        };
+      });
+    },
+    // Crea el perfil la primera vez (con lo que la persona ha escrito en el formulario). Con «acepta», deja registradas las condiciones.
+    async ensureProfile(f, acepta) {
+      const p = perfiles[uid];
+      if (p) {
+        if (acepta && p.normas !== RULES_V) { ok(await sb.from("perfiles").update({ normas: RULES_V, normas_at: nowIso() }).eq("id", uid)); p.normas = RULES_V; }
+        return;
+      }
+      const row = { id: uid, alias: String(f.alias || "").trim().slice(0, 40) || "Fotógrafo", origen: String(f.origen || "").slice(0, 40), instagram: f.instagram || "",
+        normas: acepta ? RULES_V : "", normas_at: acepta ? nowIso() : null };
+      ok(await sb.from("perfiles").insert(row));
+      perfiles[uid] = row;
+    },
+    saveProfile: async (p) => ok(await sb.from("perfiles").upsert({ id: uid, alias: p.alias.slice(0, 40), origen: (p.origen || "").slice(0, 40), instagram: p.instagram || "", web: (p.web || "").slice(0, 200), bio: (p.bio || "").slice(0, 280), normas: RULES_V, normas_at: nowIso() })),
+    deleteProfile: async () => ok(await sb.from("perfiles").delete().eq("id", uid)),
+    createTrip: async (t) => ok(await sb.from("salidas").insert({
+      organizador: uid, titulo: t.titulo.slice(0, 80), destino: t.destino, lugar: (t.lugar || "").slice(0, 60), inicio: t.inicio, fin: t.fin,
+      plazas: t.plazas, minimo: t.minimo, limite: t.limite, luz: t.luz || "", tipos: t.tipos || [], alojamiento: t.alojamiento || [],
+      material: (t.material || "").slice(0, 200), trek: t.trek, modo: t.modo, salida: t.salida || "", encuentro: t.encuentro || "",
+      org_origen: t.organizador.origen || "", org_comparte: !!t.organizador.comparte, descripcion: (t.descripcion || "").slice(0, 600),
+      planning: t.planning || [], costes_destino: t.costesDestino || [], costes_llegada: t.costesLlegada || [], cancel_gratis: !!t.cancelGratis,
+    })),
+    savePlan: async (id, planning) => ok(await sb.from("salidas").update({ planning }).eq("id", id)),
+    delTrip: async (id) => ok(await sb.from("salidas").delete().eq("id", id)),
+    join: async (id, origen, comparte) => ok(await sb.rpc("apuntarse", { p_salida: id, p_origen: origen || "", p_comparte: !!comparte })),
+    leave: async (id) => ok(await sb.rpc("borrarse", { p_salida: id })),
+    remove: async (id, pid) => ok(await sb.rpc("quitar", { p_salida: id, p_user: pid })),
+    async saveProof(id, lista, idx, codigo, enlace) {
+      const l = LISTA_DB[lista] || "destino";
+      if (!codigo && !enlace) return ok(await sb.from("comprobantes").delete().match({ salida_id: id, lista: l, idx }));
+      return ok(await sb.from("comprobantes").upsert({ salida_id: id, lista: l, idx, codigo: codigo.slice(0, 40), enlace: enlace.slice(0, 300), updated_at: nowIso() }));
+    },
+    markPaid: async (id, pid, importe) => ok(await sb.from("pagos").upsert({ salida_id: id, user_id: pid, importe, updated_at: nowIso() })),
+    unmarkPaid: async (id, pid) => ok(await sb.from("pagos").delete().match({ salida_id: id, user_id: pid })),
+    ask: async (id, texto) => ok(await sb.from("preguntas").insert({ salida_id: id, autor: uid, texto: texto.slice(0, 300) })),
+    answer: async (qid, resp) => ok(await sb.from("preguntas").update({ respuesta: resp.slice(0, 500), respondida_at: nowIso() }).eq("id", qid)),
+    delQuestion: async (qid) => ok(await sb.from("preguntas").delete().eq("id", qid)),
+    messages: async (id) => (ok(await sb.from("mensajes").select("*").eq("salida_id", id).order("created_at").limit(500)) || [])
+      .map((m) => ({ id: m.id, canal: m.canal, autor: m.autor, alias: perfiles[m.autor]?.alias || "Alguien", texto: m.texto, ts: Date.parse(m.created_at) })),
+    sendMsg: async (id, canal, texto) => ok(await sb.from("mensajes").insert({ salida_id: id, autor: uid, canal, texto: texto.slice(0, 500) })),
+  };
+  async function reload() {
+    if (demo || !sb) return;
+    try { await api.loadAll(); }
+    catch { if (!loaded) { const n = $("#mode-note"); n.textContent = "No se han podido cargar las salidas. Recarga la página en unos segundos."; n.hidden = false; } }
+    loaded = true; render();
+  }
+
+  // ---------- Perfiles y normas ----------
+  const RULES_V = "5";
+  let perfiles = {};            // id -> perfil publicado
+  let demoPerfil = null;
+  const myProfile = () => (demo ? demoPerfil : perfiles[me()]) || null;
+  const rulesOk = () => store.get("rules") === RULES_V || myProfile()?.normas === RULES_V;
+  // Devuelve el usuario de Instagram limpio, "" si está vacío y null si no es válido.
+  function igHandle(v) {
+    v = (v || "").trim();
+    if (!v) return "";
+    const m = v.match(/instagram\.com\/([A-Za-z0-9._]{1,30})/i);
+    if (m) v = m[1];
+    v = v.replace(/^@/, "");
+    return /^[A-Za-z0-9._]{1,30}$/.test(v) ? v : null;
+  }
+  const igLink = (h) => `https://www.instagram.com/${encodeURIComponent(h)}/`;
+  const igA = (h) => h ? `<a href="${esc(igLink(h))}" target="_blank" rel="noopener noreferrer">@${esc(h)}</a>` : "";
+  const prefill = () => {
+    const p = myProfile();
+    return { alias: p?.alias || store.get("alias"), origen: p?.origen || store.get("origen"), ig: p?.instagram || store.get("ig") };
+  };
+  let chat = null;              // { tripId, canal }
+  let msgs = {};                // tripId -> mensajes
+  let msgUnsub = null, msgTrip = null;
+  const me = () => uid || "local";
+
+  const EXAMPLE = {
+    id: "ejemplo", example: true,
+    titulo: "Ejemplo: auroras en el sur de Islandia",
+    destino: { tipo: "ext", region: "Islandia" }, lugar: "Vík, Jökulsárlón, Skógafoss",
+    inicio: "2027-02-12", fin: "2027-02-16", plazas: 4, minimo: 3, limite: "2027-01-15", luz: "Nocturna", tipos: ["Paisaje", "Astrofotografía"],
+    alojamiento: ["hotel"], material: "Ropa de abrigo por capas, crampones ligeros y frontal.",
+    trek: { horas: 4, desnivel: 300, km: 9, terreno: "senda", mochila: "ligera" },
+    preguntas: [{ id: "q1", alias: "Participante", texto: "¿Hace falta experiencia conduciendo con nieve?", ts: 0, respuesta: "No, conduzco yo el 4x4. Solo trae ropa de abrigo buena." }],
+    modo: "alli", encuentro: "Aeropuerto de Keflavik",
+    planning: [
+      { dia: "2027-02-12", items: [{ hora: "14:00", que: "Llegada a Keflavik y recogida del 4x4" }, { hora: "19:00", que: "Cena en la casa y previsión de auroras" }, { hora: "22:30", que: "Auroras en Skógafoss si hay cielo despejado" }] },
+      { dia: "2027-02-13", items: [{ hora: "09:30", que: "Amanecer en la playa de Reynisfjara" }, { hora: "16:30", que: "Atardecer en el promontorio de Dyrhólaey" }] },
+      { dia: "2027-02-14", items: [{ hora: "08:00", que: "Ruta a Jökulsárlón (3 h en coche)" }, { hora: "10:00", que: "Icebergs en la Diamond Beach" }] },
+      { dia: "2027-02-16", items: [{ hora: "10:00", que: "Vuelta a Keflavik y devolución del coche" }] },
+    ],
+    descripcion: "Así se verá una salida publicada. Casa compartida cerca de Vík y coche 4x4 de alquiler. Cada uno vuela desde su ciudad.",
+    costesDestino: [{ concepto: "Casa 4 noches", importe: 1100, enlace: "https://www.booking.com/", pagaA: "org" }, { concepto: "4x4 de alquiler", importe: 520, enlace: "https://www.rentalcars.com/", pagaA: "org" }, { concepto: "Combustible en destino", importe: 220, pagaA: "conductor" }],
+    cancelGratis: true,
+    costesLlegada: [],
+    organizador: { id: "x", alias: "Organizador", origen: "Bizkaia", comparte: true },
+    apuntados: [{ id: "y", alias: "Participante", origen: "Bizkaia", comparte: true }, { id: "z", alias: "Otra persona", origen: "Madrid", comparte: false }]
+  };
+
+  // ---------- Enlaces de comprobación ----------
+  // Solo se aceptan direcciones web (http/https); si falta el prefijo se añade https://.
+  function cleanUrl(v) {
+    v = (v || "").trim();
+    if (!v) return "";
+    if (!/^https?:\/\//i.test(v)) v = "https://" + v;
+    try { const u = new URL(v); return /^https?:$/.test(u.protocol) && u.hostname.includes(".") ? u.href : ""; } catch { return ""; }
+  }
+  const host = (u) => { try { return new URL(u).hostname.replace(/^www\./, ""); } catch { return ""; } };
+  const safeLink = (u) => { const c = cleanUrl(u); return c ? c : ""; };
+  // Fila del desglose: total del gasto, lo que toca por persona ahora y lo que tocaría con la salida llena.
+  function costRow(c, nAhora, plazas) {
+    const link = safeLink(c.enlace);
+    const name = link
+      ? `<a href="${esc(link)}" target="_blank" rel="noopener noreferrer">${esc(c.concepto || "Gasto")}</a><span class="src">${esc(host(link))} ↗</span>`
+      : `${esc(c.concepto || "Gasto")}<span class="nolink">Sin enlace</span>`;
+    const imp = Number(c.importe) || 0;
+    return `<tr><td>${name}</td><td class="n">${eur(imp)}</td><td class="n pp">${eur(imp / nAhora)}</td><td class="n">${eur(imp / plazas)}</td></tr>`;
+  }
+
+  // ---------- Cálculos ----------
+  const sum = (arr) => (arr || []).reduce((a, c) => a + (Number(c.importe) || 0), 0);
+  const destCosts = (t) => t.costesDestino || t.costes || [];
+  const shared = (t) => sum(destCosts(t)) + (t.modo === "alli" ? 0 : sum(t.costesLlegada));
+  const people = (t) => [t.organizador, ...(t.apuntados || [])].filter(Boolean);
+  const destLabel = (t) => t.destino?.region || t.zona || "";
+  const idaGroups = (t) => {
+    const g = {};
+    people(t).forEach((p) => { if (p.comparte && p.origen) (g[p.origen] ||= []).push(p); });
+    return g;
+  };
+
+  // ---------- Pagos ----------
+  // Nadie paga hasta que la salida está confirmada. Al organizador solo se le paga un gasto con reserva comprobada.
+  // Lo que se paga a quien conduce o directamente al proveedor no pasa por nadie.
+  const PAGA = { org: "Al organizador", conductor: "A quien conduce, durante el viaje", directo: "Cada uno directamente" };
+  const costRefs = (t) => [
+    ...destCosts(t).map((c, i) => ({ c, lista: t.costesDestino ? "costesDestino" : "costes", i })),
+    ...(t.modo === "alli" ? [] : (t.costesLlegada || []).map((c, i) => ({ c, lista: "costesLlegada", i }))),
+  ];
+  const hasProof = (c) => !!(c.comprobante && (c.comprobante.codigo || c.comprobante.enlace || c.comprobante.oculto));
+  const maskCode = (code) => { code = String(code || ""); return code.length <= 4 ? "••••" : "••••" + code.slice(-4); };
+  function pagosInfo(t, st) {
+    const n = Math.max(1, st.payers);
+    const items = costRefs(t).map((x) => {
+      const pa = x.c.pagaA || "org";
+      const parte = (Number(x.c.importe) || 0) / n;
+      return { ...x, pa, parte, proof: hasProof(x.c), cobrable: st.confirmed && pa === "org" && hasProof(x.c) };
+    });
+    const debido = items.filter((i) => i.cobrable).reduce((a, i) => a + i.parte, 0);
+    const sinProof = items.filter((i) => i.pa === "org" && !i.proof).length;
+    // Pagan al organizador los apuntados y quien se borró tarde sin que nadie ocupe su plaza.
+    const quienes = [...(t.apuntados || []).map((p) => ({ id: p.id, alias: p.alias })), ...st.late.map((b) => ({ id: b.id, alias: b.alias, tarde: true }))];
+    return { items, debido, sinProof, quienes };
+  }
+  // Gastos y pagos en un solo sitio: pasos, tu parte, desglose por persona y quién ha pagado.
+  function gastosBlock(t, st, canManage) {
+    const alli = t.modo === "alli";
+    const total = shared(t);
+    const nAhora = Math.max(1, st.payers);
+    const info = pagosInfo(t, st);
+    const pagos = t.pagos || {};
+    const pagado = (p) => Number(pagos[p.id]?.importe) || 0;
+    const isPaid = (p) => info.debido > 0 && pagado(p) >= info.debido - 0.01;
+    const quienes = info.quienes;
+    const nPaid = quienes.filter(isPaid).length;
+    const usaPagos = !t.example && !!t.limite;
+
+    // Paso en el que está la salida
+    const step = st.noSale ? 0 : !st.confirmed ? 1 : (info.debido > 0 && quienes.length && nPaid === quienes.length) ? 3 : 2;
+    const stepsHtml = usaPagos && step ? `<ol class="steps">${["Apuntarse", "Pagar", "Todo pagado"].map((lbl, i) =>
+      `<li class="${i + 1 < step ? "done" : i + 1 === step ? "current" : ""}"><span class="dot">${i + 1 < step ? "✓" : i + 1}</span>${lbl}</li>`).join("")}</ol>` : "";
+    let banner = "";
+    if (usaPagos) {
+      if (st.noSale) banner = "La salida no sale: no hay nada que pagar.";
+      else if (step === 1) banner = `Todavía <b>no se paga nada</b>. Los pagos se abren cuando la salida quede confirmada${t.limite ? `, el ${fdate(t.limite)}` : ""}, y solo para gastos con la reserva comprobada.`;
+      else if (step === 3) banner = "<b>Todo pagado.</b> Solo quedan los gastos que se pagan durante el viaje.";
+      else banner = info.debido > 0
+        ? `Ahora se pagan al organizador <b>${eur(info.debido)} por persona</b>.${info.sinProof ? ` ${info.sinProof === 1 ? "1 gasto" : info.sinProof + " gastos"} sin comprobante todavía no se paga${info.sinProof === 1 ? "" : "n"}.` : ""}`
+        : `Salida confirmada. Todavía no hay nada que pagar al organizador${info.sinProof ? ": falta que suba los comprobantes de las reservas" : ""}.`;
+    }
+    // Tu parte, si vas en la salida y no eres quien organiza
+    const yo = quienes.find((p) => p.id === me());
+    const mine = usaPagos && yo && st.confirmed && info.debido > 0
+      ? `<div class="mine-pay ${isPaid(yo) ? "ok" : ""}"><span>Tu parte para el organizador</span><b>${eur(info.debido)}</b><span class="pill ${isPaid(yo) ? "paid" : "due"}">${isPaid(yo) ? "✓ Pagado" : pagado(yo) > 0 ? `Pagado ${eur(pagado(yo))}` : "Pendiente"}</span></div>` : "";
+
+    // Tabla de gastos con lo que toca por persona y a quién se paga
+    const row = (x) => {
+      const c = x.c, imp = Number(c.importe) || 0;
+      const link = safeLink(c.enlace);
+      const name = link ? `<a href="${esc(link)}" target="_blank" rel="noopener noreferrer">${esc(c.concepto || "Gasto")}</a>` : esc(c.concepto || "Gasto");
+      let estado;
+      if (x.pa !== "org") estado = `<span class="tagline">${x.pa === "conductor" ? "Se paga a quien conduce, durante el viaje" : "Lo paga cada uno al proveedor"}</span>`;
+      else if (x.proof) {
+        const cp = c.comprobante, cl = safeLink(cp.enlace);
+        estado = `<span class="tagline"><span class="ok-txt">✓ Reserva comprobada</span>${cp.codigo ? ` · código ${canManage ? esc(cp.codigo) : maskCode(cp.codigo)}` : ""}${cl ? ` · <a href="${esc(cl)}" target="_blank" rel="noopener noreferrer">confirmación ↗</a>` : ""} · se paga al organizador</span>`;
+      } else estado = `<span class="tagline"><span class="warn-txt">Sin comprobante</span> · se paga al organizador cuando lo suba</span>`;
+      const form = canManage && x.pa === "org" && usaPagos ? `<div class="qa-form comp-form">
+          <input id="cc-${t.id}-${x.lista}-${x.i}" maxlength="40" placeholder="Código de reserva" aria-label="Código de reserva" value="${esc(c.comprobante?.codigo || "")}">
+          <input id="cu-${t.id}-${x.lista}-${x.i}" maxlength="300" placeholder="Enlace a la confirmación (opcional)" aria-label="Enlace a la confirmación" value="${esc(c.comprobante?.enlace || "")}">
+          <button type="button" class="btn-blue btn-sm" data-act="comp-save" data-id="${t.id}" data-lista="${x.lista}" data-idx="${x.i}">${x.proof ? "Actualizar" : "Guardar comprobante"}</button></div>` : "";
+      return `<tr><td>${name}${link ? `<span class="src">${esc(host(link))} ↗</span>` : ""}${estado}${form}</td><td class="n">${eur(imp)}</td><td class="n pp">${eur(imp / nAhora)}</td><td class="n">${eur(imp / t.plazas)}</td></tr>`;
+    };
+    const dest = info.items.filter((x) => x.lista !== "costesLlegada");
+    const lleg = info.items.filter((x) => x.lista === "costesLlegada");
+    const table = `<div class="table-scroll"><table class="cost-table cost-pp"><tbody>
+        <tr class="head"><th>Gasto</th><th class="n">Total</th><th class="n">Por persona ahora<span class="src">${nAhora} ${nAhora === 1 ? "persona" : "personas"}</span></th><th class="n">Si se llena<span class="src">${t.plazas} personas</span></th></tr>
+        <tr><th colspan="4">En destino</th></tr>${dest.map(row).join("") || `<tr><td class="note" colspan="4">Sin gastos</td></tr>`}
+        <tr><th colspan="4">Llegada</th></tr>${alli ? `<tr><td class="note" colspan="4">Cada uno paga su viaje hasta ${esc(t.encuentro)}</td></tr>` : lleg.map(row).join("") || `<tr><td class="note" colspan="4">Sin gastos de llegada</td></tr>`}
+        <tr class="sum"><td>Total</td><td class="n">${eur(total)}</td><td class="n pp">${eur(total / nAhora)}</td><td class="n">${eur(total / t.plazas)}</td></tr>
+      </tbody></table></div>`;
+
+    // Quién ha pagado: barra de progreso y una fila por persona
+    let payers = "";
+    if (usaPagos && st.confirmed && quienes.length) {
+      const pct = info.debido > 0 ? Math.round(nPaid / quienes.length * 100) : 0;
+      payers = `<div class="payers">
+        <div class="payers-head"><b>¿Quién ha pagado al organizador?</b><span>${info.debido > 0 ? `${nPaid} de ${quienes.length} · ${eur(nPaid * info.debido)} de ${eur(quienes.length * info.debido)}` : "Todavía no hay nada que pagar"}</span></div>
+        <div class="bar" role="img" aria-label="${pct}% pagado"><span style="width:${pct}%"></span></div>
+        <ul class="paylist">${quienes.map((p) => {
+          const ok = isPaid(p), part = pagado(p);
+          const pill = info.debido <= 0 ? `<span class="pill">Nada que pagar</span>` : ok ? `<span class="pill paid">✓ Pagado</span>` : part > 0 ? `<span class="pill due">Pagado ${eur(part)} de ${eur(info.debido)}</span>` : `<span class="pill due">Pendiente · ${eur(info.debido)}</span>`;
+          const btn = !canManage || info.debido <= 0 ? "" : ok
+            ? `<button type="button" class="btn-ghost btn-sm" data-act="pay-undo" data-id="${t.id}" data-pid="${esc(p.id)}">Deshacer</button>`
+            : `<button type="button" class="btn-primary btn-sm" data-act="pay-mark" data-id="${t.id}" data-pid="${esc(p.id)}" data-amount="${info.debido}">Marcar pagado</button>`;
+          return `<li class="${ok ? "is-paid" : ""}"><span class="who">${esc(p.alias)}${p.id === me() ? ` <span class="tag">tú</span>` : ""}${p.tarde ? ` <span class="tag">se borró tarde</span>` : ""}</span>${pill}${btn}</li>`;
+        }).join("")}</ul>
+      </div>`;
+    }
+
+    const linked = info.items.filter((x) => safeLink(x.c.enlace)).length;
+    const badge = usaPagos && st.confirmed && info.debido > 0
+      ? `<span class="badge">${nPaid} de ${quienes.length} han pagado</span>`
+      : `<span class="verify">${linked} de ${info.items.length} con enlace para comprobar</span>`;
+    return `<details class="costs gp" data-key="costs-${t.id}"><summary>Gastos y pagos ${badge}</summary>
+      ${stepsHtml}
+      ${banner ? `<p class="hint-block banner">${banner}</p>` : ""}
+      ${mine}
+      ${table}
+      ${alli ? `<p class="hint-block">A esto se suma el viaje de cada uno hasta ${esc(t.encuentro)}.</p>` : ""}
+      ${payers}
+      ${usaPagos ? `<p class="hint-block">Los datos para pagar (Bizum o cuenta) los pasa el organizador por privado: no se publican aquí. Antes de pagar, comprueba la reserva.${canManage ? "" : " El código completo pídeselo al organizador."}</p>` : ""}
+      ${t.cancelGratis ? `<p class="hint-block">El organizador indica que sus reservas tienen cancelación gratuita hasta después de la fecha límite.</p>` : ""}
+    </details>`;
+  }
+
+  // ---------- Estado de la inscripción ----------
+  // Hasta la fecha límite: inscripción libre. Después: confirmada si se llegó al mínimo (contando a quien se borró tarde,
+  // que sigue pagando su parte) o «no sale» si no. Tras la fecha solo se pueden ocupar plazas liberadas por bajas tardías.
+  function estado(t) {
+    const going = people(t).length;
+    const min = Number(t.minimo) || 0;
+    const hasLimit = !!t.limite;
+    const open = !hasLimit || today() <= t.limite;
+    const late = (t.bajas || []).filter((b) => !b.cubiertaPor);
+    const confirmed = hasLimit && !open && going + late.length >= min;
+    const noSale = hasLimit && !open && !confirmed;
+    const started = !!t.inicio && today() > t.inicio;
+    const free = t.plazas - going;
+    const freed = Math.min(late.length, free);
+    const espera = t.espera || [];
+    // Las plazas liberadas son primero para la lista de espera.
+    const joinable = !t.example && !started && !noSale && free > 0 && (open || (freed > 0 && espera.length === 0));
+    // Lista de espera: cuando no se puede entrar directamente (salida llena, o ya confirmada) pero aún puede liberarse una plaza.
+    const waitOpen = !t.example && !started && !noSale && !joinable && (open ? free <= 0 : true);
+    return { going, min, hasLimit, open, late, confirmed, noSale, started, free, freed, joinable, espera, waitOpen, payers: going + late.length };
+  }
+  const daysTo = (d) => Math.round((new Date(d + "T12:00:00") - new Date(today() + "T12:00:00")) / 864e5);
+  function statusLine(t, st) {
+    if (!st.hasLimit && !st.min) return "";
+    if (st.open) {
+      const n = daysTo(t.limite);
+      const left = n <= 0 ? "último día" : n === 1 ? "queda 1 día" : `quedan ${n} días`;
+      const ok = st.going >= st.min;
+      return `<div class="status"><span class="chip ${ok ? "ok" : "warn"}">${ok ? "Sale seguro" : `Faltan ${st.min - st.going} para que salga`}</span>
+        <span>Apúntate hasta el ${fdate(t.limite)} (${left}) · mínimo ${st.min} de ${t.plazas} plazas</span></div>`;
+    }
+    if (st.noSale) return `<div class="status"><span class="chip warn">No sale</span><span>El ${fdate(t.limite)} no se llegó al mínimo de ${st.min} personas.</span></div>`;
+    return `<div class="status"><span class="chip ok">Confirmada</span><span>Inscripción cerrada el ${fdate(t.limite)}${st.freed ? ` · <b>${st.freed} ${st.freed === 1 ? "plaza liberada" : "plazas liberadas"}</b> disponible${st.freed === 1 ? "" : "s"}` : ""}</span></div>`;
+  }
+  function closedText(t, st, full) {
+    if (st.noSale) return `No sale: no se llegó al mínimo de ${st.min} personas.`;
+    if (st.started) return "La salida ya ha empezado.";
+    if (full) return "Completo.";
+    if (!st.open) return `Inscripción cerrada el ${fdate(t.limite)}.`;
+    return "";
+  }
+
+  // ---------- Fichas ----------
+  function chatPanel(t) {
+    const mine = people(t).find((p) => p.id === me());
+    const groupCanal = mine?.comparte && mine?.origen ? "ida:" + mine.origen : null;
+    const canal = chat.canal;
+    const list = (msgs[t.id] || []).filter((m) => m.canal === canal).sort((a, b) => a.ts - b.ts);
+    const title = canal === "general" ? "Chat de la salida" : "Grupo de ida desde " + canal.slice(4);
+    const sub = canal === "general" ? "Todos los apuntados" : "Solo quienes salen desde " + canal.slice(4) + " y quieren compartir";
+    const tabs = groupCanal ? `<div class="chat-tabs">
+        <button type="button" class="seg-btn" data-act="chat" data-id="${t.id}" data-canal="general" aria-pressed="${canal === "general"}">Todos</button>
+        <button type="button" class="seg-btn" data-act="chat" data-id="${t.id}" data-canal="${esc(groupCanal)}" aria-pressed="${canal === groupCanal}">Ida desde ${esc(mine.origen)}</button>
+      </div>` : "";
+    return `<div class="chat">
+      <div class="chat-head"><div><h3>${esc(title)}</h3><p>${esc(sub)}</p></div>
+        <button type="button" class="btn-ghost btn-sm" data-act="chat-close" data-id="${t.id}">Cerrar</button></div>
+      ${tabs}
+      <div class="msgs" id="msgs-${t.id}">${list.length ? list.map((m) => `<div class="msg${m.autor === me() ? " mine" : ""}"><span class="who"><b>${esc(m.alias)}</b> · ${ftime(m.ts)}</span>${esc(m.texto)}</div>`).join("") : `<p class="none">Todavía no hay mensajes. Escribe el primero.</p>`}</div>
+      <form class="chat-form" data-id="${t.id}"><input id="chat-in-${t.id}" maxlength="500" placeholder="Escribe un mensaje" aria-label="Mensaje" autocomplete="off"><button class="btn-primary btn-sm" type="submit">Enviar</button></form>
+    </div>`;
+  }
+
+  // Quién organiza: alias, Instagram, web, salidas publicadas y presentación.
+  function orgBlock(t) {
+    const o = t.organizador || {};
+    const p = perfiles[o.id] || (o.id === me() ? myProfile() : null) || {};
+    const ig = p.instagram || o.instagram;
+    const web = safeLink(p.web);
+    const n = t.example ? 1 : trips.filter((x) => x.organizador?.id === o.id).length;
+    const trust = [
+      ig ? igA(ig) : "",
+      web ? `<a href="${esc(web)}" target="_blank" rel="noopener noreferrer">${esc(host(web))}</a>` : "",
+      `<span>${n} ${n === 1 ? "salida publicada" : "salidas publicadas"}</span>`,
+      p.alias ? `<span class="badge">Con perfil</span>` : ""
+    ].filter(Boolean).join("");
+    const shown = (p.alias || o.alias || "?");
+    return `<div class="org"><span class="av" aria-hidden="true">${esc(shown[0].toUpperCase())}</span>
+      <div class="who"><b>Organiza ${esc(o.alias || p.alias)}</b>
+        <span class="trust">${trust}</span>
+        ${p.bio ? `<span class="bio">${esc(p.bio)}</span>` : ""}</div></div>`;
+  }
+
+  // Preguntas públicas al organizador: cualquiera las lee; responde quien organiza o el dueño de la página.
+  function qaBlock(t, isOrg) {
+    const qs = [...(t.preguntas || [])].sort((a, b) => a.ts - b.ts);
+    const canAnswer = !t.example && !readOnly && isOrg;
+    const canAsk = !t.example && !readOnly;
+    const pending = qs.filter((q) => !q.respuesta).length;
+    const items = qs.map((q) => `<li>
+        <div class="q"><b>${esc(q.texto)}</b><span class="meta2">Pregunta de ${esc(q.alias || "alguien")}${q.ts ? " · " + ftime(q.ts) : ""}</span></div>
+        ${q.respuesta ? `<div class="a">${esc(q.respuesta)}</div>`
+          : canAnswer ? `<div class="qa-form"><input id="ans-${t.id}-${esc(q.id)}" maxlength="500" placeholder="Escribe la respuesta" aria-label="Respuesta"><button type="button" class="btn-blue btn-sm" data-act="answer" data-id="${t.id}" data-qid="${esc(q.id)}">Responder</button></div>`
+          : `<span class="waiting">Sin responder todavía.</span>`}
+        ${canAnswer || (isOwner && !t.example) ? `<button type="button" class="linklike" style="font-size:12px;font-weight:400" data-act="q-del" data-id="${t.id}" data-qid="${esc(q.id)}">Borrar pregunta</button>` : ""}
+      </li>`).join("");
+    const askForm = canAsk ? `<div class="qa-form">
+        ${prefill().alias ? "" : `<input id="qal-${t.id}" maxlength="40" placeholder="Tu nombre" aria-label="Tu nombre" style="flex:0 1 140px">`}
+        <input id="q-${t.id}" maxlength="300" placeholder="¿Qué quieres saber? Horarios, nivel, material…" aria-label="Tu pregunta">
+        <button type="button" class="btn-ghost btn-sm" data-act="ask" data-id="${t.id}">Preguntar</button></div>` : "";
+    return `<details class="qa" data-key="qa-${t.id}"><summary>Preguntas al organizador (${qs.length})${pending && canAnswer ? ` <span class="badge">${pending} sin responder</span>` : ""}</summary>
+      ${qs.length ? `<ul class="qa-list">${items}</ul>` : `<p class="seat-label" style="margin:8px 0 0">Nadie ha preguntado todavía. Las preguntas y respuestas las ve todo el mundo.</p>`}
+      ${askForm}</details>`;
+  }
+
+  // Herramientas de quien organiza o del dueño de la página: apuntar a otros, quitar gente y retirar la salida.
+  function adminBlock(t, full, isOrg) {
+    if (t.example || !(isOwner || isOrg) || readOnly) return "";
+    const alli = t.modo === "alli";
+    const others = (t.apuntados || []);
+    const rows = others.map((p) => `<li><span>${esc(p.alias)}${p.origen ? ` · ${esc(p.origen)}` : ""}${p.comparte ? ` · <span class="tag">comparte ida</span>` : ""}${String(p.id).startsWith("m-") ? ` <span class="tag">apuntado a mano</span>` : ""}</span>
+      <button type="button" class="btn-ghost" data-act="remove" data-id="${t.id}" data-pid="${esc(p.id)}">Quitar</button></li>`).join("");
+    const add = "";
+    return `<div class="admin"><span class="k">Gestión</span>
+      ${others.length ? `<ul class="plist">${rows}</ul>` : `<span class="seat-label">Aún no hay nadie apuntado.</span>`}
+      ${(t.espera || []).length ? `<span class="k">Lista de espera (por orden)</span><ul class="plist">${t.espera.map((p, i) => `<li><span>${i + 1}. ${esc(p.alias)}${p.origen ? ` · ${esc(p.origen)}` : ""}</span><button type="button" class="btn-ghost" data-act="wait-remove" data-id="${t.id}" data-pid="${esc(p.id)}">Quitar</button></li>`).join("")}</ul>` : ""}
+      ${(t.bajas || []).length ? `<span class="k">Bajas después de la fecha límite</span><ul class="plist">${t.bajas.map((x) => `<li><span>${esc(x.alias)} · ${fdate(new Date(x.ts).toISOString().slice(0, 10))} · ${eur(Number(x.importe) || 0)}</span><span class="tag">${x.cubiertaPor ? "Cubierta por " + esc(x.cubiertaPor) + " · no paga" : "Pendiente: paga su parte"}</span></li>`).join("")}</ul>` : ""}
+      ${add}
+      <div><button class="btn-danger btn-sm" data-act="del" data-id="${t.id}" type="button">Retirar salida</button></div>
+    </div>`;
+  }
+
+  function tripCard(t) {
+    const total = shared(t);
+    const going = people(t).length;
+    const full = going >= t.plazas;
+    const isOrg = t.organizador?.id === me() && !t.example;
+    const myP = people(t).find((p) => p.id === me());
+    const joined = !!myP && !t.example;
+    const past = (t.fin || t.inicio || "") < today();
+    const alli = t.modo === "alli";
+
+    const st0 = estado(t);
+    const seats = Array.from({ length: t.plazas }, (_, i) => {
+      const p = people(t)[i];
+      if (!p) return i < going + st0.freed ? `<span class="seat freed" title="Plaza liberada"></span>` : `<span class="seat" aria-hidden="true"></span>`;
+      return `<span class="seat ${i === 0 ? "org" : "taken"}" title="${esc(p.alias)}">${esc((p.alias || "?")[0].toUpperCase())}</span>`;
+    }).join("");
+    const names = people(t).map((p, i) => {
+      const ig = perfiles[p.id]?.instagram || p.instagram;
+      const name = ig ? `<a href="${esc(igLink(ig))}" target="_blank" rel="noopener noreferrer">${esc(p.alias)}</a>` : esc(p.alias);
+      return name + (i === 0 ? " (organiza)" : "") + (p.origen ? ` · ${esc(p.origen)}` : "");
+    }).join(", ");
+
+    let groupsHtml = "";
+    if (alli) {
+      const g = idaGroups(t);
+      const keys = Object.keys(g).sort((a, b) => g[b].length - g[a].length);
+      groupsHtml = `<div class="groups"><span class="gk">Compartir ida</span>${keys.length ? keys.map((k) => `${g[k].length} desde ${esc(k)}`).join(" · ") : "Nadie ha pedido compartir el viaje de ida todavía."}</div>`;
+    }
+
+    const nAhora = Math.max(1, st0.payers);
+    const row = (c) => costRow(c, nAhora, t.plazas);
+    const destTable = destCosts(t).map(row).join("");
+    const llegCosts = alli ? [] : (t.costesLlegada || []);
+    const llegTable = alli
+      ? `<tr><td class="note" colspan="4">Cada uno paga su viaje hasta ${esc(t.encuentro)}</td></tr>`
+      : llegCosts.map(row).join("") || `<tr><td class="note" colspan="4">Sin gastos de llegada</td></tr>`;
+    const allCosts = [...destCosts(t), ...llegCosts];
+    const linked = allCosts.filter((c) => safeLink(c.enlace)).length;
+    const st = estado(t);
+    // Antes de la fecha límite entrar abarata a todos; después solo se ocupa la plaza de quien se borró, que deja de pagar.
+    const joinPrice = st.open ? total / (st.payers + 1) : total / Math.max(1, st.payers);
+    const myShare = total / Math.max(1, st.payers);
+    const myWait = t.example ? -1 : (t.espera || []).findIndex((p) => p.id === me());
+
+    let actions = "";
+    if (t.example) {
+      actions = `<span class="state">Ficha de ejemplo, no se guarda.</span>`;
+    } else if (readOnly && !st.joinable && !st.waitOpen) {
+      actions = `<span class="state full">${closedText(t, st, full)}</span>`;
+    } else if (joined) {
+      const grp = alli && myP.comparte && myP.origen;
+      actions = `<span class="state ok">${isOrg ? "Esta salida es tuya." : myP.desdeEspera ? "Estás apuntado (entraste desde la lista de espera)." : "Estás apuntado."}</span>
+        <button class="btn-blue btn-sm" data-act="chat" data-id="${t.id}" data-canal="general" type="button">Chat de la salida</button>
+        ${grp ? `<button class="btn-blue btn-sm" data-act="chat" data-id="${t.id}" data-canal="${esc("ida:" + myP.origen)}" type="button">Hablar con tu grupo de ${esc(myP.origen)} (${idaGroups(t)[myP.origen]?.length || 1})</button>` : ""}
+        ${isOrg ? "" : (st.open || st.noSale || st.started)
+          ? (st.started ? "" : `<button class="btn-ghost btn-sm" data-act="leave" data-id="${t.id}" type="button">Borrarme</button>`)
+          : `<button class="btn-ghost btn-sm" data-act="leave" data-late="1" data-share="${eur(myShare)}" data-id="${t.id}" type="button">Borrarme</button>`}`;
+    } else if (myWait >= 0) {
+      actions = `<span class="state ok">Estás en la lista de espera · puesto ${myWait + 1} de ${st.espera.length}</span>
+        <button class="btn-ghost btn-sm" data-act="wait-leave" data-id="${t.id}" type="button">Salir de la lista</button>`;
+    } else if (!st.joinable && !st.waitOpen) {
+      actions = `<span class="state full">${closedText(t, st, full)}</span>`;
+    } else if (openJoin === t.id) {
+      const waitMode = !st.joinable;
+      const price = joinPrice;
+      const pf = prefill();
+      actions = `<div class="joinbox" style="flex:1 1 100%">
+        ${waitMode ? `<h3>Lista de espera${st.espera.length ? ` · irías en el puesto ${st.espera.length + 1}` : ""}</h3>` : ""}
+        <div class="grid2">
+          <label>Tu nombre o alias<input id="j-alias-${t.id}" maxlength="40" value="${esc(pf.alias)}"></label>
+          <label>Sales desde <span class="hint">opcional</span><select id="j-origen-${t.id}">${opts([...PROVINCIAS, FUERA], "Sin indicar").replace(`<option>${esc(pf.origen)}</option>`, `<option selected>${esc(pf.origen)}</option>`)}</select></label>
+          <label>Instagram <span class="hint">opcional</span><input id="j-ig-${t.id}" maxlength="60" placeholder="@usuario" autocomplete="off" value="${pf.ig ? "@" + esc(pf.ig) : ""}"></label>
+        </div>
+        ${alli ? `<label class="check"><input type="checkbox" id="j-comparte-${t.id}"> Me interesa compartir el viaje hasta ${esc(t.encuentro)} con gente de mi zona</label>` : ""}
+        <label class="check"><input type="checkbox" id="j-rules-${t.id}"${rulesOk() ? " checked" : ""}> Soy mayor de 18 años y acepto las <button type="button" class="linklike" data-open-rules="cond">condiciones de uso</button> y la <button type="button" class="linklike" data-open-rules="priv">política de privacidad</button></label>
+        ${waitMode
+          ? `<p class="hint-block">Si se libera una plaza, entras automáticamente, por orden de lista. ${st.open ? "Hasta la fecha límite te puedes borrar sin coste." : "Como la salida ya está confirmada, entrarías con sus condiciones: pagas tu parte y, si luego te borras, pagas igualmente salvo que alguien ocupe tu plaza."} Puedes salir de la lista cuando quieras.</p>`
+          : st.open ? "" : `<p class="hint-block">Ocupas una plaza liberada: quien la dejó ya no tendrá que pagar su parte.</p>`}
+        <p class="err" id="j-err-${t.id}" hidden></p>
+        <div class="actions">
+          <button class="btn-primary" data-act="${waitMode ? "wait" : "join"}" data-id="${t.id}" type="button">${readOnly ? "Preparar mensaje para Sergio" : waitMode ? "Apuntarme a la lista de espera" : `Confirmar por ${eur(price)}${alli ? " + tu viaje" : ""}`}</button>
+          <button class="btn-ghost" data-act="join-cancel" data-id="${t.id}" type="button">Cancelar</button>
+        </div></div>`;
+    } else if (!st.joinable) {
+      actions = `<span class="state full">${full ? "Completo." : closedText(t, st, full)}</span>
+        <button class="btn-blue" data-act="join-open" data-id="${t.id}" type="button">Apuntarme a la lista de espera${st.espera.length ? ` (${st.espera.length} esperando)` : ""}</button>`;
+    } else {
+      actions = `<button class="btn-primary" data-act="join-open" data-id="${t.id}" type="button">${st.open ? "Apuntarme" : "Ocupar plaza liberada"} por ${eur(joinPrice)}${alli ? " + tu viaje" : ""}</button>`;
+    }
+
+    const luzKey = { "Amanecer": "amanecer", "Atardecer": "atardecer", "Amanecer y atardecer": "dorada", "Nocturna": "noche", "Día completo": "dia" }[t.luz] || "dia";
+    return `<article class="trip${t.example ? " example" : ""}${past ? " past" : ""}" data-luz="${luzKey}">
+      <div class="cover">
+        <div class="cover-art">${coverSVG(t.id || t.titulo, luzKey)}</div>
+        <span class="grain" aria-hidden="true"></span>
+        <span class="vf" aria-hidden="true"></span>
+        <div class="cover-top">
+          <div class="chips">${isNew(t) ? `<span class="chip new">Nueva</span>` : ""}<span class="chip">${esc(t.luz)}</span>${t.trek ? lvlChip(nivelDe(t)) : ""}</div>
+          <div class="cover-price"><b>${eur(total / Math.max(1, st.payers))}</b><span>por persona</span></div>
+        </div>
+        <div class="cover-title">
+          <h2>${esc(t.titulo)}</h2>
+          <div class="where"><span>${esc(destLabel(t))}${t.lugar ? ", " + esc(t.lugar) : ""}</span><span>${fdate(t.inicio)}${t.fin && t.fin !== t.inicio ? " – " + fdate(t.fin) : ""}</span></div>
+        </div>
+      </div>
+      ${(t.tipos || []).length || t.cancelGratis ? `<div class="tags">${(t.tipos || []).map((k) => `<span class="chip tipo">${esc(k)}</span>`).join("")}${t.cancelGratis ? `<span class="chip tipo">Cancelación gratuita</span>` : ""}</div>` : ""}
+      <div class="mode">${alli ? `<span class="chip blue">Nos vemos allí</span> <span>Encuentro en <b>${esc(t.encuentro)}</b></span>` : `<span class="chip blue">Salimos juntos</span> <span>Desde <b>${esc(t.salida)}</b></span>`}</div>
+      ${statusLine(t, st)}
+      ${t.descripcion ? `<p class="desc">${esc(t.descripcion)}</p>` : ""}
+      ${trekLine(t)}
+      ${orgBlock(t)}
+      <div class="figures">
+        <div class="fig now"><div class="k">Ahora, por persona</div><div class="v">${eur(total / Math.max(1, st.payers))}</div></div>
+        <div class="fig"><div class="k">Si se llena</div><div class="v">${eur(total / t.plazas)}</div></div>
+        <div class="fig total"><div class="k">Gasto común</div><div class="v">${eur(total)}</div></div>
+      </div>
+      ${alli ? `<p class="plus">Más <b>tu viaje hasta ${esc(t.encuentro)}</b>, que paga cada uno.</p>` : ""}
+      ${st.late.length ? `<p class="plus">El precio cuenta a ${st.late.length === 1 ? "1 persona que se borró" : st.late.length + " personas que se borraron"} después de la fecha límite y sigue${st.late.length === 1 ? "" : "n"} pagando su parte hasta que alguien ocupe su plaza.</p>` : ""}
+      <div class="seats">
+        <div class="seat-row">${seats}</div>
+        <span class="seat-label">${going} de ${t.plazas} plazas ocupadas${st0.espera.length ? ` · ${st0.espera.length} en lista de espera` : ""}</span>
+        <span class="people">Van: ${names}</span>
+      </div>
+      ${groupsHtml}
+      ${t.example ? planBlock(t, false) : planBlock(t, !readOnly && (isOrg || isOwner))}
+      ${qaBlock(t, isOrg)}
+      ${gastosBlock(t, st, !readOnly && isOrg)}
+      <div class="actions">${actions}</div>
+      ${adminBlock(t, full, isOrg)}
+      ${chat && chat.tripId === t.id && joined ? chatPanel(t) : ""}
+    </article>`;
+  }
+
+  // ---------- Filtros ----------
+  let when = "proximas", dest = "", from = store.get("from");
+  $("#flt-from").value = PROVINCIAS.includes(from) || from === FUERA ? from : "";
+  const iso = (d) => `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, "0")}-${String(d.getDate()).padStart(2, "0")}`;
+  const today = () => iso(new Date());
+  function bounds() {
+    const n = new Date();
+    if (when === "proximas") return [today(), "9999-12-31"];
+    if (when === "mes") return [iso(new Date(n.getFullYear(), n.getMonth(), 1)), iso(new Date(n.getFullYear(), n.getMonth() + 1, 0))];
+    if (when === "siguiente") return [iso(new Date(n.getFullYear(), n.getMonth() + 1, 1)), iso(new Date(n.getFullYear(), n.getMonth() + 2, 0))];
+    if (when === "rango") return [$("#r-from").value || "0000-01-01", $("#r-to").value || "9999-12-31"];
+    return ["0000-01-01", "9999-12-31"];
+  }
+  // Fechas: la salida encaja si sus días se solapan con el rango elegido.
+  function inDates(t) {
+    const [a, b] = bounds();
+    const s = t.inicio || "", e = t.fin || t.inicio || "";
+    return s <= b && e >= a;
+  }
+  // Origen: «Salimos juntos» solo si sale de tu provincia; «Nos vemos allí» vale para todos.
+  const fromOk = (t) => !from || t.modo === "alli" || t.salida === from;
+  const destOk = (t) => !dest || destLabel(t) === dest;
+  // Tipo, precio y plazas libres
+  let tipo = "", precioMax = null, libres = false;
+  const priceNow = (t) => shared(t) / Math.max(1, estado(t).payers);
+  const tipoOk = (t) => !tipo || (t.tipos || []).includes(tipo);
+  const precioOk = (t) => precioMax == null || priceNow(t) <= precioMax;
+  const libresOk = (t) => !libres || estado(t).joinable;
+  let nivelMax = "", alojF = "";
+  const nivelOk = (t) => nivelMax === "" || (nivelMax === "-1" ? !t.trek : (nivelDe(t) ?? -1) <= Number(nivelMax));
+  const alojOk = (t) => !alojF || (t.alojamiento || []).includes(alojF);
+
+  function renderDestChips(base) {
+    const counts = {};
+    base.forEach((t) => { const k = destLabel(t); if (k) counts[k] = (counts[k] || 0) + 1; });
+    const keys = Object.keys(counts).sort((a, b) => a.localeCompare(b, "es"));
+    if (dest && !counts[dest]) dest = "";
+    $("#dest-row").innerHTML = keys.length ? `<span class="flabel">Destino</span>
+      <button type="button" class="seg-btn" data-dest="" aria-pressed="${!dest}">Todos</button>` +
+      keys.map((k) => `<button type="button" class="seg-btn" data-dest="${esc(k)}" aria-pressed="${dest === k}">${esc(k)}<span class="n">${counts[k]}</span></button>`).join("") : "";
+  }
+
+  function renderTipoChips(base) {
+    const counts = {};
+    base.forEach((t) => (t.tipos || []).forEach((k) => { counts[k] = (counts[k] || 0) + 1; }));
+    const keys = TIPOS.filter((k) => counts[k]);
+    if (tipo && !counts[tipo]) tipo = "";
+    $("#tipo-row").innerHTML = keys.length ? `<span class="flabel">Tipo de fotografía</span>
+      <button type="button" class="seg-btn" data-tipo="" aria-pressed="${!tipo}">Todos</button>` +
+      keys.map((k) => `<button type="button" class="seg-btn" data-tipo="${esc(k)}" aria-pressed="${tipo === k}">${esc(k)}<span class="n">${counts[k]}</span></button>`).join("") : "";
+  }
+
+
+  // Salidas nuevas desde la última visita (se recuerda en este navegador)
+  const lastSeen = store.get("seen");
+  let seenSaved = false;
+  const isNew = (t) => !!lastSeen && !t.example && (t.creado || "") > lastSeen && t.organizador?.id !== me();
+
+  // ---------- Pintado ----------
+  function keepInputs(fn) {
+    const box = $("#list");
+    const saved = {};
+    box.querySelectorAll("input, select").forEach((el) => { if (el.id) saved[el.id] = el.type === "checkbox" ? el.checked : el.value; });
+    const focus = document.activeElement && box.contains(document.activeElement) ? document.activeElement.id : null;
+    const openDetails = [...box.querySelectorAll("details[data-key]")].filter((d) => d.open).map((d) => d.dataset.key);
+    fn();
+    Object.entries(saved).forEach(([id, v]) => { const el = document.getElementById(id); if (el) { if (el.type === "checkbox") el.checked = v; else el.value = v; } });
+    openDetails.forEach((k) => { const d = box.querySelector(`details[data-key="${CSS.escape(k)}"]`); if (d) d.open = true; });
+    if (focus) document.getElementById(focus)?.focus();
+    if (chat) { const m = document.getElementById("msgs-" + chat.tripId); if (m) m.scrollTop = m.scrollHeight; }
+  }
+
+  function render() {
+    keepInputs(() => {
+      const list = $("#list");
+      if (!loaded) { list.innerHTML = `<p class="empty">Cargando salidas…</p>`; return; }
+      const sorted = [...trips].sort((a, b) => (a.inicio || "").localeCompare(b.inicio || ""));
+      const base = sorted.filter((t) => inDates(t) && fromOk(t) && precioOk(t) && libresOk(t) && nivelOk(t) && alojOk(t));
+      renderTipoChips(base);
+      const base2 = base.filter(tipoOk);
+      renderDestChips(base2);
+      const shown = base2.filter(destOk);
+      const activos = activeFilters();
+      $("#btn-clear").hidden = !activos;
+      $("#btn-clear").textContent = activos === 1 ? "Quitar filtro" : `Quitar ${activos} filtros`;
+      const c = $("#count");
+      const nuevas = sorted.filter(isNew).length;
+      const extra = nuevas ? ` · ${nuevas} ${nuevas === 1 ? "nueva" : "nuevas"} desde tu última visita` : "";
+      if (!sorted.length) {
+        c.textContent = "";
+        list.innerHTML = `<p class="empty"><strong>Todavía no hay salidas publicadas.</strong> Pulsa «Proponer una salida» para crear la primera. Debajo tienes una ficha de ejemplo.</p>` + tripCard(EXAMPLE);
+      } else if (!shown.length) {
+        c.textContent = `0 de ${sorted.length} salidas${extra}`;
+        list.innerHTML = `<p class="empty"><strong>Ninguna salida con esos filtros.</strong> Prueba con otras fechas, otro destino, otro precio o «Cualquier sitio».</p>`;
+      } else {
+        c.textContent = `${shown.length} de ${sorted.length} salidas${extra}`;
+        list.innerHTML = shown.map(tripCard).join("");
+      }
+      // La visita cuenta como vista una vez cargadas las salidas; las «nuevas» se mantienen marcadas hasta la próxima.
+      if (!seenSaved && !demo) { store.set("seen", new Date().toISOString()); seenSaved = true; }
+    });
+  }
+
+  $(".filters").addEventListener("click", (e) => {
+    const w = e.target.closest("[data-when]");
+    if (w) {
+      when = w.dataset.when;
+      document.querySelectorAll("[data-when]").forEach((b) => b.setAttribute("aria-pressed", String(b === w)));
+      $("#range").hidden = when !== "rango";
+      if (when === "rango" && !$("#r-from").value) $("#r-from").focus();
+      render(); return;
+    }
+    const d = e.target.closest("[data-dest]");
+    if (d) { dest = d.dataset.dest; render(); return; }
+    const tp = e.target.closest("[data-tipo]");
+    if (tp) { tipo = tp.dataset.tipo; render(); return; }
+  });
+  // Filtros distintos de lo que se ve al abrir la página («Próximas», sin nada más)
+  function activeFilters() {
+    return [when !== "proximas", !!dest, !!tipo, !!from, precioMax != null, libres, nivelMax !== "", !!alojF].filter(Boolean).length;
+  }
+  $("#btn-clear").addEventListener("click", () => {
+    when = "proximas"; dest = ""; tipo = ""; from = ""; precioMax = null; libres = false; nivelMax = ""; alojF = "";
+    $("#flt-nivel").value = ""; $("#flt-aloj").value = "";
+    store.set("from", "");
+    document.querySelectorAll("[data-when]").forEach((b) => b.setAttribute("aria-pressed", String(b.dataset.when === "proximas")));
+    $("#range").hidden = true; $("#r-from").value = ""; $("#r-to").value = "";
+    $("#flt-from").value = ""; $("#flt-precio").value = ""; $("#flt-libres").checked = false;
+    render();
+  });
+  $("#flt-precio").addEventListener("input", (e) => { const v = e.target.value; precioMax = v === "" ? null : Math.max(0, Number(v)); render(); });
+  $("#flt-libres").addEventListener("change", (e) => { libres = e.target.checked; render(); });
+  $("#flt-nivel").addEventListener("change", (e) => { nivelMax = e.target.value; render(); });
+  $("#flt-aloj").addEventListener("change", (e) => { alojF = e.target.value; render(); });
+  // Fechas emparejadas: la segunda empieza donde está la primera, para no tener que volver a buscar el mes.
+  function pairDates(fromSel, toSel, onChange) {
+    const a = $(fromSel), b = $(toSel);
+    const sync = () => {
+      b.min = a.value || "";
+      if (a.value && (!b.value || b.value < a.value)) b.value = a.value;
+      onChange && onChange();
+    };
+    a.addEventListener("change", sync);
+    a.addEventListener("input", () => { b.min = a.value || ""; });
+    b.addEventListener("change", () => { if (a.value && b.value && b.value < a.value) b.value = a.value; onChange && onChange(); });
+  }
+  pairDates("#r-from", "#r-to", render);
+  $("#flt-from").addEventListener("change", (e) => { from = e.target.value; store.set("from", from); render(); });
+
+  // ---------- Formulario de nueva salida ----------
+  let lineN = 0;
+  function costLine(box, concepto = "", importe = "", pagaA = "org") {
+    const n = lineN++;
+    const row = document.createElement("div");
+    row.className = "cost-line";
+    row.innerHTML = `<input aria-label="Concepto" id="c-con-${n}" placeholder="Concepto (p. ej. nombre del hotel)" value="${esc(concepto)}"><input aria-label="Importe en euros" id="c-imp-${n}" type="number" min="0" step="1" placeholder="€" value="${esc(importe)}"><button type="button" class="btn-ghost" aria-label="Quitar gasto">✕</button><input class="url" aria-label="Enlace para comprobarlo" id="c-url-${n}" type="url" inputmode="url" placeholder="Enlace para comprobarlo (web, Booking, anuncio…) · opcional"><label class="paga">Se paga<select id="c-paga-${n}">${Object.entries(PAGA).map(([k, v]) => `<option value="${k}"${k === pagaA ? " selected" : ""}>${v}</option>`).join("")}</select></label>`;
+    row.querySelector("button").onclick = () => { row.remove(); updateTotal(); };
+    row.addEventListener("input", updateTotal);
+    $(box).appendChild(row);
+  }
+  const readCosts = (box) => [...document.querySelectorAll(box + " .cost-line")].map((r) => {
+    const [c, i, u] = r.querySelectorAll("input");
+    const enlace = cleanUrl(u.value);
+    const pagaA = r.querySelector("select")?.value || "org";
+    return { concepto: c.value.trim(), importe: Number(i.value) || 0, pagaA, ...(enlace ? { enlace } : {}) };
+  }).filter((c) => c.concepto || c.importe);
+  const formModo = () => ($("#m-alli").checked ? "alli" : "juntos");
+  function updateTotal() {
+    const d = sum(readCosts("#cost-dest"));
+    const l = formModo() === "alli" ? 0 : sum(readCosts("#cost-lleg"));
+    const pl = Math.max(2, Number($("#f-plazas").value) || 2);
+    const tot = d + l;
+    $("#form-total").innerHTML = tot ? `Gasto común ${eur(tot)} · lleno, <b>${eur(tot / pl)}</b> por persona${formModo() === "alli" ? " + el viaje de cada uno" : ""}` : "";
+  }
+  function syncForm() {
+    const ext = $("#f-dest-tipo").value === "ext";
+    $("#w-prov").hidden = ext; $("#w-pais").hidden = !ext;
+    const alli = formModo() === "alli";
+    $("#w-salida").hidden = alli; $("#w-alli").hidden = !alli; $("#w-lleg").hidden = alli;
+    updateTotal();
+  }
+  function openForm() {
+    $("#form-panel").hidden = false;
+    $("#f-start").min = today(); $("#f-limite").min = today();
+    $("#cost-dest").innerHTML = ""; $("#cost-lleg").innerHTML = "";
+    costLine("#cost-dest", "Alojamiento", "", "org"); costLine("#cost-dest", "Combustible en destino", "", "conductor");
+    costLine("#cost-lleg", "Combustible ida y vuelta", "", "conductor"); costLine("#cost-lleg", "Peajes", "", "conductor");
+    const pf = prefill();
+    $("#f-org").value = pf.alias;
+    $("#f-org-ig").value = pf.ig ? "@" + pf.ig : "";
+    const o = pf.origen;
+    if (PROVINCIAS.includes(o)) $("#f-salida").value = o;
+    if (o) $("#f-org-origen").value = o;
+    $("#f-rules").checked = rulesOk();
+    syncForm();
+    $("#f-title").focus();
+  }
+  function closeForm() { $("#form-panel").hidden = true; planEditor($("#f-plan"), "", "", []); $("#trip-form").reset(); $("#w-trek").hidden = true; /* reset también desmarca los tipos */ $("#form-err").hidden = true; $("#f-org-label").textContent = "Tu nombre o alias"; }
+  $("#btn-new").onclick = () => { if (!demo && !uid) { openLogin("Entra con tu email para proponer una salida. La primera vez se crea tu cuenta."); return; } openForm(); };
+  $("#btn-cancel").onclick = closeForm;
+  $("#add-dest").onclick = () => costLine("#cost-dest");
+  $("#add-lleg").onclick = () => costLine("#cost-lleg");
+  ["#f-plazas"].forEach((s) => $(s).addEventListener("input", updateTotal));
+  pairDates("#f-start", "#f-end", () => {
+    planEditor($("#f-plan"), $("#f-start").value, $("#f-end").value, readPlan($("#f-plan")));
+    // La fecha límite para apuntarse tiene que caer antes de la salida.
+    const lim = $("#f-limite");
+    lim.max = $("#f-start").value || "";
+    if (lim.value && $("#f-start").value && lim.value > $("#f-start").value) lim.value = $("#f-start").value;
+  });
+  $("#f-plazas").addEventListener("input", () => { $("#f-minimo").max = $("#f-plazas").value || 12; });
+  ["#f-dest-tipo", "#m-juntos", "#m-alli"].forEach((s) => $(s).addEventListener("change", syncForm));
+  ["#tk-no", "#tk-si", "#tk-terreno", "#tk-mochila"].forEach((s) => $(s).addEventListener("change", syncTrek));
+  ["#tk-horas", "#tk-desn", "#tk-km"].forEach((s) => $(s).addEventListener("input", syncTrek));
+  $("#f-proxy").addEventListener("change", (e) => {
+    const on = e.target.checked;
+    $("#f-org-label").textContent = on ? "Nombre o alias de quien organiza" : "Tu nombre o alias";
+    $("#f-org").value = on ? "" : prefill().alias;
+    $("#f-org-ig").value = on ? "" : (prefill().ig ? "@" + prefill().ig : "");
+  });
+
+  // ---------- Panel de normas ----------
+  document.addEventListener("click", (e) => {
+    const cp = e.target.closest("[data-copy]");
+    if (cp) {
+      const txt = cp.dataset.copy;
+      Promise.resolve().then(() => navigator.clipboard.writeText(txt)).then(() => { cp.textContent = "Copiado"; }, () => {
+        const sel = cp.previousElementSibling; if (sel) { const r = document.createRange(); r.selectNodeContents(sel); const s = getSelection(); s.removeAllRanges(); s.addRange(r); }
+        cp.textContent = "Selecciónalo y cópialo";
+      });
+      return;
+    }
+    const lg = e.target.closest("[data-legal]");
+    if (lg) { showLegal(lg.dataset.legal); return; }
+    const op = e.target.closest("[data-open-rules]");
+    if (!op) return;
+    e.preventDefault();
+    showLegal(op.dataset.openRules || "cond");
+    $("#rules-panel").hidden = false;
+    $("#rules-panel").scrollIntoView({ behavior: matchMedia("(prefers-reduced-motion: reduce)").matches ? "auto" : "smooth", block: "start" });
+  });
+  function showLegal(tab) {
+    ["cond", "aviso", "priv"].forEach((k) => { $("#legal-" + k).hidden = k !== tab; });
+    document.querySelectorAll("[data-legal]").forEach((b) => b.setAttribute("aria-pressed", String(b.dataset.legal === tab)));
+  }
+  $("#btn-rules").onclick = () => { $("#rules-panel").hidden = !$("#rules-panel").hidden; };
+  // Los botones de arriba se quedan marcados mientras su panel está abierto.
+  [["#btn-profile", "#profile-panel"], ["#btn-rules", "#rules-panel"], ["#btn-new", "#form-panel"]].forEach(([b, p]) => {
+    const sync = () => $(b).setAttribute("aria-pressed", String(!$(p).hidden));
+    new MutationObserver(sync).observe($(p), { attributes: true, attributeFilter: ["hidden"] });
+    sync();
+  });
+  $("#rules-close").onclick = () => { $("#rules-panel").hidden = true; };
+
+  // ---------- Mi perfil ----------
+  $("#p-origen").innerHTML = opts([...PROVINCIAS, FUERA], "Sin indicar");
+  function openProfile() {
+    const p = myProfile() || {};
+    const pf = prefill();
+    $("#p-alias").value = p.alias || pf.alias;
+    $("#p-origen").value = p.origen || pf.origen || "";
+    $("#p-ig").value = (p.instagram || pf.ig) ? "@" + (p.instagram || pf.ig) : "";
+    $("#p-web").value = p.web || "";
+    $("#p-bio").value = p.bio || "";
+    $("#p-rules").checked = rulesOk();
+    $("#p-delete").hidden = !myProfile();
+    $("#p-err").hidden = true;
+    $("#profile-panel").hidden = false;
+    $("#p-alias").focus();
+  }
+  $("#btn-profile").onclick = () => { if ($("#profile-panel").hidden) openProfile(); else $("#profile-panel").hidden = true; };
+  $("#p-cancel").onclick = () => { $("#profile-panel").hidden = true; };
+  $("#profile-form").addEventListener("submit", async (e) => {
+    e.preventDefault();
+    const err = $("#p-err");
+    const fail = (m) => { err.textContent = m; err.hidden = false; };
+    const alias = $("#p-alias").value.trim();
+    const ig = igHandle($("#p-ig").value);
+    const webRaw = $("#p-web").value.trim();
+    const web = cleanUrl(webRaw);
+    if (!alias) return fail("Falta tu nombre o alias.");
+    if (ig === null) return fail("Ese usuario de Instagram no parece válido. Escríbelo como @usuario o déjalo vacío.");
+    if (webRaw && !web) return fail("Esa web no parece una dirección válida.");
+    if (!$("#p-rules").checked) return fail("Para guardar tu perfil tienes que aceptar las condiciones de uso y la política de privacidad.");
+    const p = { alias, origen: $("#p-origen").value, instagram: ig || "", web, bio: $("#p-bio").value.trim(), normas: RULES_V, actualizado: new Date().toISOString() };
+    $("#p-save").disabled = true;
+    try {
+      if (demo) demoPerfil = p;
+      else { await api.saveProfile(p); await reload(); }
+      store.set("alias", alias); if (p.origen) store.set("origen", p.origen); if (ig) store.set("ig", ig); store.set("rules", RULES_V);
+      $("#profile-panel").hidden = true;
+      render();
+    } catch { fail("No se ha podido guardar. Prueba otra vez en unos segundos."); }
+    finally { $("#p-save").disabled = false; }
+  });
+  $("#p-delete").onclick = async (e) => {
+    const b = e.currentTarget;
+    if (b.dataset.confirm !== "1") { b.dataset.confirm = "1"; b.textContent = "Pulsa otra vez para borrarlo"; return; }
+    b.disabled = true;
+    try {
+      if (demo) demoPerfil = null;
+      else { await api.deleteProfile(); await reload(); }
+      store.set("ig", "");
+      $("#profile-panel").hidden = true;
+      render();
+    } catch { $("#p-err").textContent = "No se ha podido borrar. Prueba otra vez."; $("#p-err").hidden = false; }
+    finally { b.disabled = false; b.dataset.confirm = ""; b.textContent = "Borrar mi perfil"; }
+  };
+
+  $("#trip-form").addEventListener("submit", async (e) => {
+    e.preventDefault();
+    const err = $("#form-err");
+    const modo = formModo();
+    const ext = $("#f-dest-tipo").value === "ext";
+    const pais = $("#f-pais").value.trim();
+    const region = ext ? (pais ? pais[0].toUpperCase() + pais.slice(1) : "") : $("#f-prov").value;
+    const alias = $("#f-org").value.trim();
+    const orgOrigen = modo === "juntos" ? $("#f-salida").value : $("#f-org-origen").value;
+    const proxy = isOwner && $("#f-proxy").checked;
+    const orgIg = igHandle($("#f-org-ig").value);
+    const t = {
+      titulo: $("#f-title").value.trim(),
+      destino: { tipo: ext ? "ext" : "es", region },
+      lugar: $("#f-lugar").value.trim(),
+      inicio: $("#f-start").value,
+      fin: $("#f-end").value || $("#f-start").value,
+      plazas: Math.min(12, Math.max(2, Number($("#f-plazas").value) || 2)),
+      minimo: Math.max(2, Number($("#f-minimo").value) || 2),
+      limite: $("#f-limite").value,
+      bajas: [],
+      pagos: {},
+      cancelGratis: $("#f-cancel").checked,
+      luz: $("#f-luz").value,
+      tipos: [...document.querySelectorAll("#f-tipos input:checked")].map((i) => i.value),
+      alojamiento: [...document.querySelectorAll("#f-aloj input:checked")].map((i) => i.value),
+      material: $("#f-material").value.trim().slice(0, 200),
+      trek: readTrek(),
+      preguntas: [],
+      modo,
+      salida: modo === "juntos" ? $("#f-salida").value : "",
+      encuentro: modo === "alli" ? $("#f-encuentro").value.trim() : "",
+      descripcion: $("#f-desc").value.trim(),
+      planning: readPlan($("#f-plan")),
+      costesDestino: readCosts("#cost-dest"),
+      costesLlegada: modo === "juntos" ? readCosts("#cost-lleg") : [],
+      organizador: { id: proxy ? newId() : me(), alias, origen: orgOrigen, comparte: modo === "alli" && $("#f-org-comparte").checked, ...(orgIg ? { instagram: orgIg } : {}), ...(proxy ? {} : { normas: RULES_V }) },
+      apuntados: [],
+      creado: new Date().toISOString()
+    };
+    const missing = [];
+    if (!t.titulo) missing.push("título");
+    if (!region) missing.push(ext ? "país" : "provincia de destino");
+    if (!t.inicio) missing.push("fecha de salida");
+    if (modo === "juntos" && !t.salida) missing.push("desde dónde salís");
+    if (modo === "alli" && !t.encuentro) missing.push("punto de encuentro");
+    if (!alias) missing.push("tu nombre o alias");
+    if (!shared(t)) missing.push("al menos un gasto con importe");
+    if (!$("#f-rules").checked) missing.push("aceptar las condiciones de uso y la privacidad");
+    if (!t.limite) missing.push("fecha límite para apuntarse");
+    if (missing.length) { err.textContent = "Falta: " + missing.join(", ") + "."; err.hidden = false; return; }
+    if (t.minimo > t.plazas) { err.textContent = "Las plazas mínimas no pueden ser más que las plazas totales."; err.hidden = false; return; }
+    if (t.limite < today()) { err.textContent = "La fecha límite para apuntarse no puede ser anterior a hoy."; err.hidden = false; return; }
+    if (t.limite > t.inicio) { err.textContent = "La fecha límite para apuntarse tiene que ser antes de la salida o el mismo día."; err.hidden = false; return; }
+    if (orgIg === null) { err.textContent = "Ese usuario de Instagram no parece válido. Escríbelo como @usuario o déjalo vacío."; err.hidden = false; return; }
+    store.set("rules", RULES_V);
+    if (t.fin < t.inicio) { err.textContent = "La vuelta no puede ser antes de la salida."; err.hidden = false; return; }
+    err.hidden = true;
+    if (!proxy) { store.set("alias", alias); if (orgOrigen) store.set("origen", orgOrigen); if (orgIg) store.set("ig", orgIg); }
+    if (!demo && !uid) { openLogin("Entra con tu email para publicar la salida. Lo que has escrito sigue aquí."); return; }
+    $("#btn-save").disabled = true;
+    try {
+      if (demo) { trips.push({ ...t, id: "d" + Date.now() }); render(); }
+      else {
+        await api.ensureProfile({ alias, origen: orgOrigen, instagram: orgIg || "" }, true);
+        await api.createTrip(t);
+        await reload();
+      }
+      closeForm();
+    } catch (ex) {
+      err.textContent = errMsg(ex, "No se ha podido publicar. Revisa los datos y prueba otra vez en unos segundos.");
+      err.hidden = false;
+    } finally { $("#btn-save").disabled = false; }
+  });
+
+  // ---------- Chat ----------
+  function watchMsgs(tripId) {
+    if (msgTrip === tripId) return;
+    if (msgUnsub) { msgUnsub(); msgUnsub = null; }
+    msgTrip = tripId;
+    if (demo || !sb) return;
+    const load = async () => { try { msgs[tripId] = await api.messages(tripId); render(); } catch {} };
+    load();
+    const ch = sb.channel("chat-" + tripId)
+      .on("postgres_changes", { event: "*", schema: "public", table: "mensajes", filter: "salida_id=eq." + tripId }, () => load())
+      .subscribe();
+    msgUnsub = () => { sb.removeChannel(ch); };
+  }
+  function closeChat() {
+    chat = null;
+    if (msgUnsub) { msgUnsub(); msgUnsub = null; }
+    msgTrip = null;
+  }
+
+  $("#list").addEventListener("submit", async (e) => {
+    const f = e.target.closest(".chat-form");
+    if (!f) return;
+    e.preventDefault();
+    const id = f.dataset.id;
+    const inp = document.getElementById("chat-in-" + id);
+    const texto = inp.value.trim();
+    const t = trips.find((x) => x.id === id);
+    const myP = t && people(t).find((p) => p.id === me());
+    if (!texto || !myP || !chat) return;
+    inp.value = "";
+    try {
+      if (demo) { (msgs[id] ||= []).push({ canal: chat.canal, autor: me(), alias: myP.alias, texto, ts: Date.now() }); render(); }
+      else { await api.sendMsg(id, chat.canal, texto); msgs[id] = await api.messages(id); render(); }
+    } catch { inp.value = texto; inp.placeholder = "No se ha enviado. Prueba otra vez."; }
+  });
+
+  // ---------- Modo prueba (sin conexión): los cambios se hacen solo en esta pantalla ----------
+  function applyLocal(t, act, entry, removeId) {
+    const st = estado(t);
+    let ap = [...(t.apuntados || [])];
+    let espera = [...(t.espera || [])];
+    const bajas = [...(t.bajas || [])];
+    if (act === "wait-leave" || act === "wait-remove") {
+      espera = espera.filter((p) => p.id !== removeId);
+    } else {
+      ap = ap.filter((p) => p.id !== removeId);
+      const leaving = (t.apuntados || []).find((p) => p.id === removeId);
+      if (act === "leave" && leaving && !st.open && !st.noSale) {
+        bajas.push({ id: leaving.id, alias: leaving.alias, ts: Date.now(), importe: Math.round(shared(t) / Math.max(1, st.payers) * 100) / 100, cubiertaPor: "" });
+      }
+      if (entry && act === "wait") {
+        if (!espera.some((p) => p.id === entry.id) && !ap.some((p) => p.id === entry.id)) espera.push({ ...entry, ts: Date.now() });
+      } else if (entry && 1 + ap.length < t.plazas && !st.noSale) {
+        const freed = bajas.findIndex((x) => !x.cubiertaPor);
+        if (st.open || freed >= 0) {
+          ap.push(entry);
+          if (!st.open && freed >= 0) bajas[freed] = { ...bajas[freed], cubiertaPor: entry.alias, cubiertaTs: Date.now() };
+        }
+      }
+    }
+    while (espera.length && 1 + ap.length < t.plazas && !st.noSale && !st.started && (st.open || bajas.some((x) => !x.cubiertaPor))) {
+      const { ts, ...p } = espera.shift();
+      ap.push({ ...p, desdeEspera: true });
+      const f = bajas.findIndex((x) => !x.cubiertaPor);
+      if (!st.open && f >= 0) bajas[f] = { ...bajas[f], cubiertaPor: p.alias, cubiertaTs: Date.now() };
+    }
+    return { apuntados: ap, bajas, espera };
+  }
+
+  // ---------- Acciones de las fichas ----------
+  $("#list").addEventListener("click", async (e) => {
+    const b = e.target.closest("button[data-act]");
+    if (!b) return;
+    const id = b.dataset.id, act = b.dataset.act;
+    const local = trips.find((x) => x.id === id);
+
+    if ((act === "join-open" || act === "ask") && !demo && !uid) {
+      openLogin(act === "ask" ? "Entra con tu email para preguntar al organizador." : "Entra con tu email para apuntarte. La primera vez se crea tu cuenta.");
+      return;
+    }
+    if (act === "join-open") { openJoin = id; render(); document.getElementById("j-alias-" + id)?.focus(); return; }
+    if (act === "join-cancel") { openJoin = null; render(); return; }
+    if (act === "chat") { chat = { tripId: id, canal: b.dataset.canal }; watchMsgs(id); render(); document.getElementById("chat-in-" + id)?.focus(); return; }
+    if (act === "chat-close") { closeChat(); render(); return; }
+    if (act === "plan-edit") {
+      const t = trips.find((x) => x.id === id);
+      if (!t) return;
+      planTrip = id;
+      $("#plan-panel-title").textContent = `«${t.titulo}» · ${fdate(t.inicio)}${t.fin && t.fin !== t.inicio ? " → " + fdate(t.fin) : ""}`;
+      planEditor($("#pe-plan"), t.inicio, t.fin, t.planning || []);
+      $("#pe-err").hidden = true;
+      $("#plan-panel").hidden = false;
+      $("#plan-panel").scrollIntoView({ block: "start" });
+      return;
+    }
+    if (!local) return;
+
+    // Hace el cambio: en modo prueba solo en pantalla; con conexión, en la base de datos y luego recarga.
+    const run = async (onDemo, onServer) => {
+      b.disabled = true;
+      try {
+        if (demo) { onDemo(); render(); }
+        else { await onServer(); await reload(); }
+      } catch (ex) { b.disabled = false; b.textContent = errMsg(ex, "Error, reintenta"); }
+    };
+
+    if (act === "comp-save") {
+      const key = `${id}-${b.dataset.lista}-${b.dataset.idx}`;
+      const codigo = document.getElementById("cc-" + key)?.value.trim() || "";
+      const rawUrl = document.getElementById("cu-" + key)?.value.trim() || "";
+      const enlace = cleanUrl(rawUrl);
+      if (rawUrl && !enlace) { b.textContent = "Enlace no válido"; return; }
+      const lista = b.dataset.lista, idx = Number(b.dataset.idx);
+      return run(() => {
+        const arr = local[lista] || [];
+        if (arr[idx]) arr[idx] = { ...arr[idx], comprobante: codigo || enlace ? { codigo, enlace, ts: Date.now() } : null };
+      }, () => api.saveProof(id, lista, idx, codigo, enlace));
+    }
+    if (act === "pay-mark" || act === "pay-undo") {
+      const pid = b.dataset.pid, importe = Math.round(Number(b.dataset.amount) * 100) / 100;
+      return run(() => {
+        local.pagos = { ...(local.pagos || {}) };
+        if (act === "pay-mark") local.pagos[pid] = { importe, ts: Date.now() }; else delete local.pagos[pid];
+      }, () => act === "pay-mark" ? api.markPaid(id, pid, importe) : api.unmarkPaid(id, pid));
+    }
+
+    if (act === "ask") {
+      const qin = document.getElementById("q-" + id);
+      const texto = qin?.value.trim();
+      if (!texto) { qin?.focus(); return; }
+      const alias = prefill().alias || document.getElementById("qal-" + id)?.value.trim();
+      if (!alias) { document.getElementById("qal-" + id)?.focus(); return; }
+      return run(() => { local.preguntas = [...(local.preguntas || []), { id: newId(), autor: me(), alias, texto, ts: Date.now() }]; qin.value = ""; },
+        async () => { await api.ensureProfile({ alias }, false); await api.ask(id, texto); qin.value = ""; });
+    }
+    if (act === "answer") {
+      const ain = document.getElementById(`ans-${id}-${b.dataset.qid}`);
+      const resp = ain?.value.trim();
+      if (!resp) { ain?.focus(); return; }
+      return run(() => { local.preguntas = (local.preguntas || []).map((q) => q.id === b.dataset.qid ? { ...q, respuesta: resp, respTs: Date.now() } : q); },
+        () => api.answer(b.dataset.qid, resp));
+    }
+    if (act === "q-del") {
+      if (b.dataset.confirm !== "1") { b.dataset.confirm = "1"; b.textContent = "Pulsa otra vez para borrarla"; return; }
+      return run(() => { local.preguntas = (local.preguntas || []).filter((q) => q.id !== b.dataset.qid); }, () => api.delQuestion(b.dataset.qid));
+    }
+
+    if (act === "join" || act === "wait") {
+      const aliasIn = document.getElementById("j-alias-" + id);
+      const alias = aliasIn?.value.trim();
+      if (!alias) { aliasIn?.focus(); aliasIn?.setAttribute("placeholder", "Escribe tu nombre para apuntarte"); return; }
+      const origen = document.getElementById("j-origen-" + id)?.value || "";
+      const comparte = !!document.getElementById("j-comparte-" + id)?.checked;
+      const ig = igHandle(document.getElementById("j-ig-" + id)?.value);
+      const jerr = document.getElementById("j-err-" + id);
+      const fail = (msg) => { jerr.textContent = msg; jerr.hidden = false; };
+      if (ig === null) return fail("Ese usuario de Instagram no parece válido. Escríbelo como @usuario o déjalo vacío.");
+      if (!document.getElementById("j-rules-" + id)?.checked) return fail("Para apuntarte tienes que aceptar las condiciones de uso y la política de privacidad.");
+      store.set("alias", alias); if (origen) store.set("origen", origen); if (ig) store.set("ig", ig); store.set("rules", RULES_V);
+      b.disabled = true;
+      try {
+        if (demo) Object.assign(local, applyLocal(local, act, { id: me(), alias, origen, comparte, ...(ig ? { instagram: ig } : {}) }, null));
+        else {
+          await api.ensureProfile({ alias, origen, instagram: ig || "" }, true);
+          await api.join(id, origen, comparte);
+        }
+        openJoin = null;
+        if (demo) render(); else await reload();
+      } catch (ex) { b.disabled = false; fail(errMsg(ex, "No se ha podido apuntar. Prueba otra vez en unos segundos.")); }
+      return;
+    }
+
+    if (act === "leave" && b.dataset.late === "1" && b.dataset.confirm !== "1") {
+      b.dataset.confirm = "1"; b.textContent = `Pulsa otra vez: pagarás ${b.dataset.share} si nadie ocupa tu plaza`; return;
+    }
+    if ((act === "del" || act === "remove" || act === "wait-remove") && b.dataset.confirm !== "1") {
+      b.dataset.confirm = "1"; b.textContent = act === "del" ? "Pulsa otra vez para retirarla" : "¿Seguro?"; return;
+    }
+    if ((act === "leave" || act === "del") && chat?.tripId === id) closeChat();
+    if (act === "leave" || act === "wait-leave") return run(() => Object.assign(local, applyLocal(local, act, null, me())), () => api.leave(id));
+    if (act === "remove" || act === "wait-remove") return run(() => Object.assign(local, applyLocal(local, act, null, b.dataset.pid)), () => api.remove(id, b.dataset.pid));
+    if (act === "del") return run(() => { trips = trips.filter((x) => x.id !== id); }, () => api.delTrip(id));
+  });
+
+  let planTrip = null;
+  $("#pe-close").onclick = () => { $("#plan-panel").hidden = true; planTrip = null; };
+  $("#pe-save").onclick = async () => {
+    const t = trips.find((x) => x.id === planTrip);
+    if (!t) return;
+    const planning = readPlan($("#pe-plan"));
+    const b = $("#pe-save"); b.disabled = true;
+    try {
+      if (demo) t.planning = planning;
+      else { await api.savePlan(planTrip, planning); await reload(); }
+      $("#plan-panel").hidden = true; planTrip = null; render();
+    } catch {
+      $("#pe-err").textContent = "No se ha podido guardar. Prueba otra vez en unos segundos."; $("#pe-err").hidden = false;
+    } finally { b.disabled = false; }
+  };
+
+  // ---------- Entrar con un enlace al email ----------
+  const LOGIN_TXT = "Escribe tu email y te mandamos un enlace para entrar. No hace falta contraseña: la primera vez se crea tu cuenta.";
+  function openLogin(why) {
+    $("#login-why").textContent = why ? why + " Te mandamos un enlace a tu email; no hace falta contraseña." : LOGIN_TXT;
+    $("#l-err").hidden = true; $("#l-ok").hidden = true;
+    $("#login-panel").hidden = false;
+    $("#login-panel").scrollIntoView({ block: "start" });
+    $("#l-email").focus();
+  }
+  $("#btn-login").onclick = () => { if ($("#login-panel").hidden) openLogin(); else $("#login-panel").hidden = true; };
+  $("#l-cancel").onclick = () => { $("#login-panel").hidden = true; };
+  $("#login-form").addEventListener("submit", async (e) => {
+    e.preventDefault();
+    const email = $("#l-email").value.trim();
+    const err = $("#l-err"), okMsg = $("#l-ok");
+    err.hidden = true; okMsg.hidden = true;
+    if (!/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(email)) { err.textContent = "Ese email no parece válido."; err.hidden = false; return; }
+    if (!sb) { err.textContent = "Ahora mismo no hay conexión con el servidor. Prueba en un rato."; err.hidden = false; return; }
+    $("#l-send").disabled = true;
+    try {
+      ok(await sb.auth.signInWithOtp({ email, options: { emailRedirectTo: location.origin + location.pathname } }));
+      okMsg.innerHTML = `Listo. Te hemos mandado un enlace a <b>${esc(email)}</b>. Ábrelo en este mismo dispositivo y entrarás directamente. Si en unos minutos no lo ves, mira en Spam o Promociones.`;
+      okMsg.hidden = false;
+    } catch (ex) {
+      err.textContent = /rate|limit|seconds|security purposes/i.test(ex?.message || "")
+        ? "Se han pedido demasiados enlaces seguidos. Espera unos minutos y vuelve a probar."
+        : "No se ha podido enviar el enlace. Prueba otra vez en unos segundos.";
+      err.hidden = false;
+    } finally { $("#l-send").disabled = false; }
+  });
+  $("#p-logout").onclick = async () => {
+    try { await sb?.auth.signOut(); } catch {}
+    $("#profile-panel").hidden = true;
+    await setSession(null);
+    await reload();
+  };
+  new MutationObserver(() => $("#btn-login").setAttribute("aria-pressed", String(!$("#login-panel").hidden)))
+    .observe($("#login-panel"), { attributes: true, attributeFilter: ["hidden"] });
+
+  function setAuthUI() {
+    $("#btn-login").hidden = !!uid || demo;
+    $("#btn-profile").hidden = !uid && !demo;
+    $("#p-email").textContent = userEmail ? `Has entrado como ${userEmail}. ` : "";
+    $("#p-logout").hidden = !uid;
+  }
+  async function setSession(session) {
+    const nuevo = session?.user?.id || null;
+    if (nuevo !== uid) { closeChat(); openJoin = null; }
+    uid = nuevo;
+    userEmail = session?.user?.email || "";
+    isOwner = false;
+    if (uid && sb) {
+      try { isOwner = !!(ok(await sb.from("admins").select("user_id").eq("user_id", uid)) || []).length; } catch {}
+      $("#login-panel").hidden = true;
+    }
+    setAuthUI();
+  }
+
+  // ---------- Arranque ----------
+  $("#hero-cover").innerHTML = coverSVG("salidas-compartidas", "dorada");
+  render();
+  (async () => {
+    const vueltaConError = /error_description=([^&]+)/.exec(location.hash);
+    try {
+      if (!window.supabase?.createClient) throw new Error("sin librería");
+      sb = window.supabase.createClient(SB_URL, SB_KEY, { auth: { flowType: "implicit", persistSession: true, detectSessionInUrl: true, autoRefreshToken: true } });
+      const { data } = await sb.auth.getSession();
+      demo = false;
+      await setSession(data?.session || null);
+      if (/access_token|error_description/.test(location.hash)) history.replaceState(null, "", location.pathname + location.search);
+      await reload();
+      // Al entrar o salir en otra pestaña, o cuando caduca la sesión
+      sb.auth.onAuthStateChange((_ev, session) => {
+        if ((session?.user?.id || null) === uid) return;
+        setTimeout(() => { setSession(session).then(reload); }, 0);
+      });
+      // Cambios de otras personas, en directo
+      let tmr = null;
+      const soon = () => { clearTimeout(tmr); tmr = setTimeout(() => { reload(); }, 400); };
+      let ch = sb.channel("cambios");
+      ["salidas", "inscripciones", "preguntas", "pagos", "comprobantes", "bajas", "perfiles"].forEach((table) => {
+        ch = ch.on("postgres_changes", { event: "*", schema: "public", table }, soon);
+      });
+      ch.subscribe();
+      if (vueltaConError) {
+        const n = $("#mode-note");
+        n.textContent = "Ese enlace para entrar ya no vale (caduca en una hora y solo sirve una vez). Pide otro con «Entrar».";
+        n.hidden = false;
+      }
+    } catch {
+      sb = null; demo = true; loaded = true;
+      const n = $("#mode-note");
+      n.textContent = "No se ha podido conectar con el servidor. Puedes mirar cómo funciona, pero lo que hagas ahora no se guarda.";
+      n.hidden = false;
+      setAuthUI();
+      render();
+    }
+  })();
+})();
+</script>
+</body>
+</html>
